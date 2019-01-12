@@ -1,0 +1,14 @@
+import pickle
+
+def generateChannelMasterFile (filepath):
+with open(filepath) as fp:
+	StudyName = " ".join(StudyNameAndChannelNo.split(" ", 2)[:2])
+	ChannelNo = int(StudyNameAndChannelNo.split(" ", 2)[2][1])
+	FilterOrder = int(fp.readline().split(": ")[1][0])
+	FilterCutoff_1 = float(fp.readline().split(": ")[1][:-1])
+	FilterCutoff_2 = float(fp.readline().split(": ")[1][:-1])
+	Ts = float(fp.readline().split(": ")[1][:-1])
+	Fs = float(fp.readline().split(": ")[1][:-1])
+	DataLength = int(fp.readline().split(": ")[1][:-1])
+	SeizureLength = int(fp.readline().split(": ")[1][:-1])
+	SeizureDuration = float(fp.readline().split(": ")[1][:-1])
