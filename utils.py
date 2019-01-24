@@ -2,8 +2,6 @@ import numpy as np
 import scipy as sp
 import sys
 
-sys.settrace
-
 ####################################################################################
 #Calculate line length of a given asarray
 #input:
@@ -20,14 +18,15 @@ sys.settrace
 ####################################################################################
 def calculateFeatureValue(Feature, stepSize = 0.2, window = 1):
 	data = Feature.Measurement.seizureData
-    	assert(len(data) > window)
-    	diff = np.zeros(window-1)
-    	diff = np.append(diff,np.array(abs(data[1:len(data)] - data[0:len(data)-1])))
-    	result = [0]
-    	for i in range(window-1,len(diff)):
-        	result.append(np.sum(diff[i-window+1:i+1]))
-    	#result = result[::stepSize]
-    	return np.asarray(result)/window
+	assert(len(data) > window)
+	diff = np.zeros(window-1)
+	diff = np.append(diff,np.array(abs(data[1:len(data)] - data[0:len(data)-1])))
+	result = [0]
+	for i in range(window-1,len(diff)):
+		result.append(np.sum(diff[i-window+1:i+1]))
+	result = result[::stepSize]
+	#print((np.asarray(result)/window).shape)
+	return np.asarray(result)/window
 
 
 ####################################################################################

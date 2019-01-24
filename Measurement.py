@@ -1,11 +1,13 @@
 import Pairing
+import Feature
+import NonlinearEnergy
 import pickle
 import numpy as np
 import scipy.signal as signal
 import matplotlib.pyplot as plt
 
 class Measurement:
-	def __init__ (self, filepath):
+	def __init__ (self, filepath, startPairing, endPairing):
 		print("Entering")		
 		# Parameters to extract from the text file and store into the variables below
 		self.seizurePairings = []
@@ -31,7 +33,7 @@ class Measurement:
 		fp.close()
 
 		# Doing the pairings here
-		for i in range(1, self.SeizureLength + 1):
+		for i in range(startPairing, endPairing + 1):
 			try:
 				Pair = Pairing.Pairing(self.ChannelNo, i)
 			except:
@@ -41,13 +43,12 @@ class Measurement:
 				temp_label = np.zeros(len(Pair.data))
 				self.seizureData += (Pair.data)
 				temp_start = master["seizureStart"][i-1]
-				print(temp_start)
 				temp_label[temp_start:] = 1
 				self.label = np.append(self.label,temp_label)
 				self.seizureDuration.append(master["SeizureDuration"][i-1])
 
-		print(len(self.label))
-		print(len(self.seizureData))
+		assert(len(self.label) == len(self.seizureData))
+		
 
 	def downsample(self, n = 2):
 		if (self.Fs % n != 0):
@@ -59,15 +60,20 @@ class Measurement:
 		self.Fs = self.Fs/n
 		self.Ts = 1/self.Fs
 		# Updating the seizureStart and seizureEnd
-		self.seizureStart = np.floor(np.array(self.seizureStart)/n).astype(int)
-		self.seizureEnd = np.ceil(np.array(self.seizureEnd)/n).astype(int)
+		# self.seizureStart = np.floor(np.array(self.seizureStart)/n).astype(int)
+		# self.seizureEnd = np.ceil(np.array(self.seizureEnd)/n).astype(int)
 		# Updating the seizurePairings
-		for i in range(0, len(self.seizurePairings)):
-			print(len(self.seizurePairings[i].data))
-			self.seizurePairings[i].data = self.seizurePairings[i].data[::n]
-			print(len(self.seizurePairings[i].data))
+		self.label = self.label[::n]
 
-x = Measurement("Study_005_channel1.pkg")
+
+# x = Measurement("Study_005_channel1.pkg")
+# print(len(x.seizureData))
+#print(len(x.label))
+#print("done loading")
+# x.downsample(2)
+#print(len(x.seizureData))
+#print(len(x.label))
+
 # x.downsample(2)
 #data = np.array(lines,np.float32)
 #print("data length: ", len(data))

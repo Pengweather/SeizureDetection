@@ -1,7 +1,8 @@
 import pickle
 import numpy as np
+
 def generateChannelMasterFile (filepath):
-	with open(filepath+".txt") as fp:
+	with open(filepath + ".txt") as fp:
 		StudyNameAndChannelNo  = fp.readline().split(": ")[1]
 		StudyName = " ".join(StudyNameAndChannelNo.split(" ", 2)[:2])
 		ChannelNo = int(StudyNameAndChannelNo.split(" ", 2)[2][1])
@@ -49,12 +50,11 @@ def generateChannelMasterFile (filepath):
 				break
 
 	fp.close()
-	Relative_idx = np.asarray(seizureStart) - np.asarray(seizureEnd[0:len(seizureEnd)-1])
-	master = {"seizureStart": Relative_idx, "StudyName": StudyName, "ChannelNo": ChannelNo, "FilterOrder": FilterOrder, "FilterCutoff_1": FilterCutoff_1, "FilterCutoff_2": FilterCutoff_2, "Ts": Ts, "Fs": Fs, "DataLength": DataLength, "SeizureDuration": np.asarray(seizureDuration), "SeizureLength": SeizureLength}
-	#print(master)
-	#print(master["SeizureDuration"])
+	relativeIdx = np.asarray(seizureStart) - np.asarray(seizureEnd[0:len(seizureEnd)-1])
+	master = {"seizureStart": relativeIdx, "StudyName": StudyName, "ChannelNo": ChannelNo, "FilterOrder": FilterOrder, "FilterCutoff_1": FilterCutoff_1, "FilterCutoff_2": FilterCutoff_2, "Ts": Ts, "Fs": Fs, "DataLength": DataLength, "SeizureDuration": np.asarray(seizureDuration), "SeizureLength": SeizureLength}
 	pickle.dump(master, open(filepath + ".pkg","wb"))
 
 generateChannelMasterFile('Study_005_channel1')
+
 #data = pickle.load(open('Study_005_channel1.pkg',"rb"))
 #print(data["seizureStart"][14])

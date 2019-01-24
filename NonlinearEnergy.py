@@ -1,5 +1,4 @@
-import Feature as fe
-import Measurement as mm
+import Feature
 import pandas as pd
 import numpy as np
 import scipy as sp
@@ -11,13 +10,15 @@ def calculateFeatureValue(Feature):
 	val[0] = 0
 	val[-1] = 0
 	# For now, use this method from Pandas
-	movAverage = pd.rolling_mean(data, Feature.WindowLength.astype(int) - 1)
+	s = pd.Series(val) 
+	movAverage = s.rolling(Feature.WindowLength.astype(int) - 1).mean()
+	movAverage = movAverage[::Feature.StepSize]
 	# This results in a memory error
 	# movAverage = ma.movingAverage(val, self.WindowLength.astype(int) - 1, 0)
-	print(np.array(movAverage).size)
+	print(np.asarray(movAverage).shape)
 	movAverage = np.array(movAverage)
-	value = movAverage[range(0, movAverage.size - 1, Feature.StepSize.astype(int))]
-	return value
+	# value = movAverage[range(0, movAverage.size - 1, Feature.StepSize.astype(int))]
+	return movAverage
 
 """
 MeasObj = mm.Measurement('Study_005_channel1.txt')
