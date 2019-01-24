@@ -1,5 +1,4 @@
 # Default values for the feature calculations
-#import Measurement as mm
 import pandas as pd
 import numpy as np
 import scipy as sp
@@ -24,24 +23,24 @@ class StartEndLengthError(RuntimeError):
 		self.args = arg
 
 class Feature:
-	def __init__ (self, MeasurementObject, StepSizeSeconds = DEFAULT_STEPSIZE_SECONDS, WindowLengthSeconds = DEFAULT_WINDOWLENGTH_SECONDS, BaselineAverageTimeSeconds = DEFAULT_BASELINE_AVERAGETIME_SECONDS, AverageWindowShiftSeconds = DEFAULT_AVERAGE_WINDOWSHIFT_SECONDS, BaselineRefreshRateSeconds = DEFAULT_BASELINE_REFRESHRATE_SECONDS, SeizureHoldTimeSeconds = DEFAULT_SEIZURE_HOLDTIME_SECONDS, ThresholdBaselineFactor = DEFAULT_THRESHOLD_BASELINE_FACTOR, CostSensitivity = DEFAULT_COST_SENSITIVITY, CostFalseAlarmRate = DEFAULT_COST_FALSEALARM_RATE):
-		self.Measurement = MeasurementObject
-		self.StepSize = np.floor(self.Measurement.Fs * StepSizeSeconds).astype(int)
-		self.WindowLength = np.floor(self.Measurement.Fs * WindowLengthSeconds)
-		if (self.WindowLength % self.StepSize != 0.0):
+	def __init__ (self, measurementObject, stepSizeSeconds = DEFAULT_STEPSIZE_SECONDS, windowLengthSeconds = DEFAULT_WINDOWLENGTH_SECONDS, baselineAverageTimeSeconds = DEFAULT_BASELINE_AVERAGETIME_SECONDS, averageWindowShiftSeconds = DEFAULT_AVERAGE_WINDOWSHIFT_SECONDS, baselineRefreshRateSeconds = DEFAULT_BASELINE_REFRESHRATE_SECONDS, seizureHoldTimeSeconds = DEFAULT_SEIZURE_HOLDTIME_SECONDS, thresholdBaselineFactor = DEFAULT_THRESHOLD_BASELINE_FACTOR, costSensitivity = DEFAULT_COST_SENSITIVITY, costFalseAlarmRate = DEFAULT_COST_FALSEALARM_RATE):
+		self.measurement = measurementObject
+		self.stepSize = np.floor(self.measurement.Fs * stepSizeSeconds).astype(int)
+		self.windowLength = np.floor(self.measurement.Fs * windowLengthSeconds)
+		if (self.windowLength % self.stepSize != 0.0):
 			raise WindowStepCompError("Window length has to be a multiple of step size!")
-		self.DataAnalysisLength = np.ceil(self.Measurement.DataLength/self.StepSize)
-		self.labelDownsampled = self.Measurement.label[::self.StepSize]
-		#self.seizureEndDownsampled = np.ceil(np.array(self.Measurement.seizureEnd)/self.StepSize)
+		self.dataAnalysisLength = np.ceil(self.measurement.dataLength/self.stepSize)
+		self.labelDownsampled = self.measurement.label[::self.stepSize]
+		#self.seizureEndDownsampled = np.ceil(np.array(self.measurement.seizureEnd)/self.stepSize)
 		#if (self.seizureStartDownsampled.size != self.seizureEndDownsampled.size):
 		#	raise StartEndLengthError("The start and end seizure lengths must be the same size!")
-		self.NumSeizures = self.labelDownsampled.size
-		#self.Duration = self.Measurement.SeizureDuration
-		self.BaselineWindowLength = np.floor(BaselineAverageTimeSeconds * self.Measurement.Fs/self.StepSize)
-		self.BaselineShift = np.floor(AverageWindowShiftSeconds * self.Measurement.Fs/self.StepSize)
-		self.BaselineRefreshrate = np.floor(BaselineRefreshRateSeconds * self.Measurement.Fs/self.StepSize)
-		self.SeizureHoldTime = self.Measurement.Fs/self.StepSize * SeizureHoldTimeSeconds
-		self.CostSensitivity = CostSensitivity
-		self.CostFalseAlarmRate = CostFalseAlarmRate
-		self.ThresholdBaselineFactor = ThresholdBaselineFactor
+		self.numSeizures = self.labelDownsampled.size
+		#self.duration = self.measurement.seizureDuration
+		self.baselineWindowLength = np.floor(baselineAverageTimeSeconds * self.measurement.Fs/self.stepSize)
+		self.baselineShift = np.floor(averageWindowShiftSeconds * self.measurement.Fs/self.stepSize)
+		self.baselineRefreshRate = np.floor(baselineRefreshRateSeconds * self.measurement.Fs/self.stepSize)
+		self.seizureHoldTime = self.measurement.Fs/self.stepSize * seizureHoldTimeSeconds
+		self.costSensitivity = costSensitivity
+		self.costFalseAlarmRate = costFalseAlarmRate
+		self.thresholdBaselineFactor = thresholdBaselineFactor
 		self.value = np.array([])

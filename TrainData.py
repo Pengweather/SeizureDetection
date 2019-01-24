@@ -3,7 +3,7 @@ import NonlinearEnergy as ny
 import SpectralPower as sr
 import Feature as fe
 # Utils calculates the line length!!!
-import utils as ll
+import LineLength as ll
 import numpy as np
 import scipy as sp
 import scipy.signal as sp
@@ -26,7 +26,7 @@ alphaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 14, 32)
 betaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 8, 12)
 
 nonlinearEnergyFeature1 = ny.calculateFeatureValue(FeatObj1)
-lineLengthFeature1 = ll.calculateFeatureValue(FeatObj1, FeatObj1.StepSize.astype(int), FeatObj1.WindowLength.astype(int))
+lineLengthFeature1 = ll.calculateFeatureValue(FeatObj1, FeatObj1.stepSize.astype(int), FeatObj1.windowLength.astype(int))
 features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
 print(features.shape)
 print(lineLengthFeature1[:5])

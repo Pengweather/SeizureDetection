@@ -21,31 +21,31 @@ class Measurement:
 			# Reading in parameters
 			master = pickle.load(open(filepath,"rb"))
 			#StudyNameAndChannelNo  = fp.readline().split(": ")[1]
-			self.StudyName = master["StudyName"]
-			self.ChannelNo = int(master["ChannelNo"])
-			self.FilterOrder = int(master["FilterOrder"])
-			self.FilterCutoff_1 = float(master["FilterCutoff_1"])
-			self.FilterCutoff_2 = float(master["FilterCutoff_2"])
+			self.studyName = master["studyName"]
+			self.channelNo = int(master["channelNo"])
+			self.filterOrder = int(master["filterOrder"])
+			self.filterCutoff_1 = float(master["filterCutoff_1"])
+			self.filterCutoff_2 = float(master["filterCutoff_2"])
 			self.Ts = float(master["Ts"])
 			self.Fs = float(master["Fs"])
-			self.SeizureLength = int(master["SeizureLength"])
+			self.seizureLength = int(master["seizureLength"])
 			
 		fp.close()
 
 		# Doing the pairings here
 		for i in range(startPairing, endPairing + 1):
 			try:
-				Pair = Pairing.Pairing(self.ChannelNo, i)
+				Pair = Pairing.Pairing(self.channelNo, i)
 			except:
-				print("Did not find Channel", self.ChannelNo, "Pairing", i)
+				print("Did not find Channel", self.channelNo, "Pairing", i)
 			else:
-				print("Found Channel", self.ChannelNo, "Pairing", i)
+				print("Found Channel", self.channelNo, "Pairing", i)
 				temp_label = np.zeros(len(Pair.data))
 				self.seizureData += (Pair.data)
 				temp_start = master["seizureStart"][i-1]
 				temp_label[temp_start:] = 1
 				self.label = np.append(self.label,temp_label)
-				self.seizureDuration.append(master["SeizureDuration"][i-1])
+				self.seizureDuration.append(master["seizureDuration"][i-1])
 
 		assert(len(self.label) == len(self.seizureData))
 		
@@ -56,7 +56,7 @@ class Measurement:
 		# Decimate
 		self.seizureData = signal.decimate(np.array(self.seizureData), n)
 		# Updating the length, sampling frequency, and sampling time
-		self.DataLength = self.seizureData.size
+		self.dataLength = self.seizureData.size
 		self.Fs = self.Fs/n
 		self.Ts = 1/self.Fs
 		# Updating the seizureStart and seizureEnd
@@ -64,21 +64,3 @@ class Measurement:
 		# self.seizureEnd = np.ceil(np.array(self.seizureEnd)/n).astype(int)
 		# Updating the seizurePairings
 		self.label = self.label[::n]
-
-
-# x = Measurement("Study_005_channel1.pkg")
-# print(len(x.seizureData))
-#print(len(x.label))
-#print("done loading")
-# x.downsample(2)
-#print(len(x.seizureData))
-#print(len(x.label))
-
-# x.downsample(2)
-#data = np.array(lines,np.float32)
-#print("data length: ", len(data))
-#plt.figure()
-#plt.plot(data[0::2]**2)
-#leg = plt.legend()
-#plt.setp(leg.get_lines(),linewidth = 0.5)
-#plt.show()
