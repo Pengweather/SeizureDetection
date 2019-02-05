@@ -49,35 +49,12 @@ class Feature:
 	def analyze(self, prediction):
 		# Prediction edges
 		total = np.count_nonzero(prediction)
+		total_label = np.count_nonzero(self.labelDownsampled)
 		TP = np.logical_and(self.labelDownsampled, prediction)
 		FP = total - np.count_nonzero(TP)
 		FP_rate = FP / float(total)
-		accuracy = 1 - FP_rate
+		sensitivity = TP/ float(total_label)
 
-		#print(FP/total)		
+		#print(FP/total)
 		#print(accuracy)
-		return accuracy, FP_rate
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		
+		return sensitivity, FP_rate
