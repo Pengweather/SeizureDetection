@@ -28,8 +28,7 @@ class Measurement:
 			self.filterCutoff_2 = float(master["filterCutoff_2"])
 			self.Ts = float(master["Ts"])
 			self.Fs = float(master["Fs"])
-			self.seizureLength = int(master["seizureLength"])
-			
+			self.seizureLength = int(master["seizureLength"])		
 		fp.close()
 
 		# Doing the pairings here
@@ -39,7 +38,7 @@ class Measurement:
 			except:
 				print("Did not find Channel", self.channelNo, "Pairing", i)
 			else:
-				print("Found Channel", self.channelNo, "Pairing", i)
+				# print("Found Channel", self.channelNo, "Pairing", i)
 				temp_label = np.zeros(len(Pair.data))
 				self.seizureData += (Pair.data)
 				temp_start = master["seizureStart"][i-1]

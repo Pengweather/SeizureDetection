@@ -13,6 +13,7 @@ DEFAULT_SEIZURE_HOLDTIME_SECONDS = 60
 DEFAULT_THRESHOLD_BASELINE_FACTOR = 5
 DEFAULT_COST_SENSITIVITY = 50
 DEFAULT_COST_FALSEALARM_RATE = 1
+TOL = 200
 
 class WindowStepCompError(RuntimeError):
 	def __init__(self, arg):
@@ -44,3 +45,39 @@ class Feature:
 		self.costFalseAlarmRate = costFalseAlarmRate
 		self.thresholdBaselineFactor = thresholdBaselineFactor
 		self.value = np.array([])
+
+	def analyze(self, prediction):
+		# Prediction edges
+		total = np.count_nonzero(prediction)
+		TP = np.logical_and(self.labelDownsampled, prediction)
+		FP = total - np.count_nonzero(TP)
+		FP_rate = FP / float(total)
+		accuracy = 1 - FP_rate
+
+		#print(FP/total)		
+		#print(accuracy)
+		return accuracy, FP_rate
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		

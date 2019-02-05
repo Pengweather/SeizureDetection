@@ -16,7 +16,7 @@ def generateChannelMasterFile (filepath):
 		seizureDuration = float(fp.readline().split(": ")[1][:-1])
 
 		seizureStart = []
-		seizureEnd = [0]
+		seizureEnd = [0B]
 		seizureDuration = []
 
 		# Reading in Seizure Start

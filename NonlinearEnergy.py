@@ -15,7 +15,7 @@ def calculateFeatureValue(feature):
 	movAverage = movAverage[::feature.stepSize]
 	# This results in a memory error
 	# movAverage = ma.movingAverage(val, self.WindowLength.astype(int) - 1, 0)
-	print(np.asarray(movAverage).shape)
+	#print(np.asarray(movAverage).shape)
 	movAverage = np.array(movAverage)
 	# value = movAverage[range(0, movAverage.size - 1, Feature.StepSize.astype(int))]
 	return movAverage
