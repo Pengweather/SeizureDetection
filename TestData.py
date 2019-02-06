@@ -123,7 +123,7 @@ if Method == "Regress" :
 plt.figure()
 plt.xlabel('Index')
 plt.ylabel('Label')
-plt.title('Acutual Label vs Prediction' + "(" + Method + ')')
+plt.title('Actual Label vs Prediction' + " (" + Method + ')')
 
 plt.plot(result,color = 'r',label = 'Predicted')
 plt.plot(FeatObj1.labelDownsampled,color = 'g',label = 'Actual')
