@@ -15,12 +15,13 @@ import sklearn.linear_model as lm
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--Methods', type=str, default= 'None')
+parser.add_argument('--Methods', '-m', type=str, default= 'None')
+parser.add_argument('--Normalize', '-n', type=str, default= 'None')
 parser.add_argument('--Start', '-s', type=int, default=1)
 parser.add_argument('--End', '-e', type=int, default=10)
 args = parser.parse_args()
 Method = args.Methods
-
+Norm = args.Normalize
 
 MeasObjCh1 = mm.Measurement("Study_005_channel1.pkg", args.Start, args.End)
 MeasObjCh1.downsample(2)
@@ -65,7 +66,7 @@ tempMean = [np.mean(thetaBandPowerFeature1),np.mean(alphaBandPowerFeature1),np.m
 tempStd = [np.std(thetaBandPowerFeature1),np.std(alphaBandPowerFeature1),np.std(betaBandPowerFeature1),np.std(nonlinearEnergyFeature1),np.std(lineLengthFeature1)]
 
 # Do the feature normalization here
-if Method == "MinMax":
+if Norm == "MinMax":
 	print("Using MinMax")
 	thetaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(thetaBandPowerFeature1))
 	alphaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(alphaBandPowerFeature1))
@@ -73,7 +74,7 @@ if Method == "MinMax":
 
 	nonlinearEnergyFeature1 = Normalization.normalizeDataMinMax(np.asarray(nonlinearEnergyFeature1))
 	lineLengthFeature1 = Normalization.normalizeDataMinMax(np.asarray(lineLengthFeature1))
-elif (Method == "MeanStd"):
+elif (Norm == "MeanStd"):
 	print("Using MeanStd")
 	thetaBandPowerFeature1 = Normalization.normalizeDataMeanStd(thetaBandPowerFeature1, np.mean(thetaBandPowerFeature1), np.std(thetaBandPowerFeature1))
 	alphaBandPowerFeature1 = Normalization.normalizeDataMeanStd(alphaBandPowerFeature1, np.mean(alphaBandPowerFeature1), np.std(alphaBandPowerFeature1))
@@ -82,11 +83,7 @@ elif (Method == "MeanStd"):
 	nonlinearEnergyFeature1 = Normalization.normalizeDataMeanStd(nonlinearEnergyFeature1, np.mean(nonlinearEnergyFeature1), np.std(nonlinearEnergyFeature1))
 	lineLengthFeature1 = Normalization.normalizeDataMeanStd(lineLengthFeature1, np.mean(lineLengthFeature1), np.std(lineLengthFeature1))
 ###############################################################################################################################
-elif Method == "Regress":
-	pass
-else:
-	print("No method selected.")
-	assert(False)
+
 features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
 #(thetaBandPowerFeature1))
 # print(features.type)
@@ -95,18 +92,23 @@ features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, 
 # print(FeatObj1.labelDownsampled.type)
 
 # This part can be modified for different machine learning architectures
-if Method == "MinMax" or Method == "MeanStd":
+if Method == 'SVM':
+	print('Using SVM')
 	clf = svm.SVC(gamma = 0.001, kernel = 'rbf')
 
 elif Method == "Regress":
+	print('Using Regression')
 	# clf = lm.LogisticRegression(random_state=0, solver='lbfgs', multi_class='multinomial')
 	clf=lm.LinearRegression()
+else:
+	print('No ML model provided')
+	assert(False)
 # n_estimators = 10
 # clf = OneVsRestClassifier(BaggingClassifier(SVC(kernel='linear', probability=True, class_weight='auto'), max_samples=1.0 / n_estimators, n_estimators=n_estimators))
 y = clf.fit(features, FeatObj1.labelDownsampled)
 print("Saving...")
 filename ="trained_0.pkg"
-saveData = {'model' : clf, 'mean': tempMean, 'std': tempStd, 'Method': Method}
+saveData = {'model' : clf, 'mean': tempMean, 'std': tempStd, 'Method': Method, 'Norm': Norm}
 pickle.dump(saveData, open(filename, 'wb'))
 
 # False Alarm Rate

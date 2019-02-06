@@ -15,7 +15,7 @@ import sklearn.linear_model as lm
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--filename', '-f', type=str, default= 'None')
+parser.add_argument('--filename', '-f', type=str, default= 'trained')
 parser.add_argument('--Start', '-s', type=int, default=11)
 parser.add_argument('--End', '-e', type=int, default=15)
 args = parser.parse_args()
@@ -78,7 +78,8 @@ for i in range(NUM_CONFIG):
 	loadData = pickle.load(open(filename, 'rb'))
 	clf = loadData['model']
 	Method = loadData['Method']
-	if Method == "MeanStd":
+	Norm = loadData['Norm']
+	if Norm == "MeanStd":
 		print("Using MeanStd")
 		#print(loadData['mean'])
 		thetaBandPowerFeature1 = Normalization.normalizeDataMeanStd(np.asarray(thetaBandPowerFeature1),loadData['mean'][0],loadData['std'][0])
@@ -88,7 +89,7 @@ for i in range(NUM_CONFIG):
 		nonlinearEnergyFeature1 = Normalization.normalizeDataMeanStd(np.asarray(nonlinearEnergyFeature1),loadData['mean'][3],loadData['std'][3])
 		lineLengthFeature1 = Normalization.normalizeDataMeanStd(np.asarray(lineLengthFeature1),loadData['mean'][4],loadData['std'][4])
 ###############################################################################################################################
-	elif Method == "MinMax":
+	elif Norm == "MinMax":
 		print("Using MinMax")
 		thetaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(thetaBandPowerFeature1))
 		alphaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(alphaBandPowerFeature1))
@@ -97,8 +98,6 @@ for i in range(NUM_CONFIG):
 		nonlinearEnergyFeature1 = Normalization.normalizeDataMinMax(np.asarray(nonlinearEnergyFeature1))
 		lineLengthFeature1 = Normalization.normalizeDataMinMax(np.asarray(lineLengthFeature1))
 	###############################################################################################################################
-	elif Method == "Regress":
-		print("Using Regression")
 	features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
 
 
@@ -124,7 +123,7 @@ if Method == "Regress" :
 plt.figure()
 plt.xlabel('Index')
 plt.ylabel('Label')
-plt.title('Acutual Label vs Prediction')
+plt.title('Acutual Label vs Prediction' + "(" + Method + ')')
 
 plt.plot(result,color = 'r',label = 'Predicted')
 plt.plot(FeatObj1.labelDownsampled,color = 'g',label = 'Actual')
