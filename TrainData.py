@@ -1,3 +1,6 @@
+from functools import reduce
+from sklearn import svm
+
 import Measurement as mm
 import NonlinearEnergy as ny
 import SpectralPower as sr
@@ -8,17 +11,17 @@ import scipy as sp
 import scipy.signal as sp
 import Normalization
 import pickle
-from functools import reduce
-from sklearn import svm
 import sklearn.linear_model as lm
-
-
 import argparse
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--Methods', '-m', type=str, default= 'None')
 parser.add_argument('--Normalize', '-n', type=str, default= 'None')
 parser.add_argument('--Start', '-s', type=int, default=1)
 parser.add_argument('--End', '-e', type=int, default=10)
+# Adding another parser argument for the purpose of testing different SVM kernels 
+parser.add_argument('--SVMkernel', '-k', type = str, default = 'rbf') 
+
 args = parser.parse_args()
 Method = args.Methods
 Norm = args.Normalize
@@ -48,9 +51,6 @@ nonlinearEnergyFeature1IsNaN = np.where(np.isnan(nonlinearEnergyFeature1))
 lineLengthFeature1IsNaN = np.where(np.isnan(lineLengthFeature1))
 
 indicesToRemove = reduce(np.union1d, (thetaBandPowerFeature1IsNaN[0], alphaBandPowerFeature1IsNaN[0], betaBandPowerFeature1IsNaN[0], nonlinearEnergyFeature1IsNaN[0], lineLengthFeature1IsNaN[0]))
-
-#print(indicesToRemove)
-#print(thetaBandPowerFeature1.shape)
 
 # Removing the indices
 for i in sorted(indicesToRemove.tolist(), reverse = True):
@@ -94,12 +94,15 @@ features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, 
 # This part can be modified for different machine learning architectures
 if Method == 'SVM':
 	print('Using SVM')
-	clf = svm.SVC(gamma = 0.001, kernel = 'rbf')
+	Kernel = args.SVMkernel
+	if (Kernel == 'rbf'):
+		clf = svm.SVC(gamma = 0.001, kernel = 'rbf')
+		
 
 elif Method == "Regress":
 	print('Using Regression')
 	# clf = lm.LogisticRegression(random_state=0, solver='lbfgs', multi_class='multinomial')
-	clf=lm.LinearRegression()
+	clf = lm.LinearRegression()
 else:
 	print('No ML model provided')
 	assert(False)
