@@ -11,11 +11,20 @@ import pickle
 from functools import reduce
 from sklearn import svm
 import matplotlib.pyplot as plt
+import sklearn.linear_model as lm
+
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--filename', '-f', type=str, default= 'None')
+parser.add_argument('--Start', '-s', type=int, default=11)
+parser.add_argument('--End', '-e', type=int, default=15)
+args = parser.parse_args()
+file = args.filename
+
 
 NUM_CONFIG = 1
-MinMax = 1
 # Uploading the testing data
-MeasObjCh1 = mm.Measurement('Study_005_channel1.pkg', 45, 51)
+MeasObjCh1 = mm.Measurement('Study_005_channel1.pkg', args.Start, args.End)
 MeasObjCh1.downsample(2)
 #print(len(MeasObjCh1.seizureData))
 #print(len(MeasObjCh1.label))
@@ -44,27 +53,16 @@ indicesToRemove = reduce(np.union1d, (thetaBandPowerFeature1IsNaN[0], alphaBandP
 #print(indicesToRemove)
 #print(thetaBandPowerFeature1.shape)
 
-# Removing the indices 
+# Removing the indices
 for i in sorted(indicesToRemove.tolist(), reverse = True):
 	thetaBandPowerFeature1 = np.delete(thetaBandPowerFeature1, i)
 	alphaBandPowerFeature1 = np.delete(alphaBandPowerFeature1, i)
 	betaBandPowerFeature1 = np.delete(betaBandPowerFeature1, i)
 	nonlinearEnergyFeature1 = np.delete(nonlinearEnergyFeature1, i)
 	lineLengthFeature1 = np.delete(lineLengthFeature1, i)
-	FeatObj1.labelDownsampled = np.delete(FeatObj1.labelDownsampled, i) 
+	FeatObj1.labelDownsampled = np.delete(FeatObj1.labelDownsampled, i)
 
-# Do the feature normalization here 
-if MinMax:
-	print("Using MinMax")
-	thetaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(thetaBandPowerFeature1))
-	alphaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(alphaBandPowerFeature1))
-	betaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(betaBandPowerFeature1))
-
-	nonlinearEnergyFeature1 = Normalization.normalizeDataMinMax(np.asarray(nonlinearEnergyFeature1))
-	lineLengthFeature1 = Normalization.normalizeDataMinMax(np.asarray(lineLengthFeature1))
-###############################################################################################################################
-
-	features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
+# Do the feature normalization here
 #print(features.shape)
 #print(lineLengthFeature1[:5])
 #print(features[:5])
@@ -76,10 +74,11 @@ tp = []
 
 # Upload the results from training
 for i in range(NUM_CONFIG):
-	filename = "SVC_trained_" + str(i) + ".pkg"
+	filename = file + "_" + str(i) + ".pkg"
 	loadData = pickle.load(open(filename, 'rb'))
 	clf = loadData['model']
-	if not MinMax:
+	Method = loadData['Method']
+	if Method == "MeanStd":
 		print("Using MeanStd")
 		#print(loadData['mean'])
 		thetaBandPowerFeature1 = Normalization.normalizeDataMeanStd(np.asarray(thetaBandPowerFeature1),loadData['mean'][0],loadData['std'][0])
@@ -89,9 +88,18 @@ for i in range(NUM_CONFIG):
 		nonlinearEnergyFeature1 = Normalization.normalizeDataMeanStd(np.asarray(nonlinearEnergyFeature1),loadData['mean'][3],loadData['std'][3])
 		lineLengthFeature1 = Normalization.normalizeDataMeanStd(np.asarray(lineLengthFeature1),loadData['mean'][4],loadData['std'][4])
 ###############################################################################################################################
+	elif Method == "MinMax":
+		print("Using MinMax")
+		thetaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(thetaBandPowerFeature1))
+		alphaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(alphaBandPowerFeature1))
+		betaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(betaBandPowerFeature1))
 
-		features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
-
+		nonlinearEnergyFeature1 = Normalization.normalizeDataMinMax(np.asarray(nonlinearEnergyFeature1))
+		lineLengthFeature1 = Normalization.normalizeDataMinMax(np.asarray(lineLengthFeature1))
+	###############################################################################################################################
+	elif Method == "Regress":
+		print("Using Regression")
+	features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
 
 
 
@@ -100,39 +108,37 @@ for i in range(NUM_CONFIG):
 	Accu_temp, FP_temp = FeatObj1.analyze(result)
 	Accu.append(Accu_temp)
 	FP.append(FP_temp)
-	print("Accuracy = " + str(Accu_temp*100) + "%")
-	print("FP = " + str(FP_temp*100) + "%")
 
-#plt.figure()
-#plt.plot(FP,Accu,marker = "*")
-#plt.show()
 
+
+
+if Method == "Regress" :
+	Accu = []
+	FP = []
+	for i in range (10):
+		threshold = 0.09 + i * 0.1
+		predict = np.asarray(result + (1-threshold)).astype(int)
+		Accu_temp, FP_temp = FeatObj1.analyze(predict)
+		Accu.append(Accu_temp)
+		FP.append(FP_temp)
 plt.figure()
-plt.plot(result,color = 'r')
-plt.plot(FeatObj1.labelDownsampled,color = 'g')
+plt.xlabel('Index')
+plt.ylabel('Label')
+plt.title('Acutual Label vs Prediction')
+
+plt.plot(result,color = 'r',label = 'Predicted')
+plt.plot(FeatObj1.labelDownsampled,color = 'g',label = 'Actual')
+plt.legend(loc='upper left')
 #plt.scatter(tp,np.ones(len(tp)),marker = "*")
 plt.show()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+if Method == "Regress" :
+	print(FP)
+	plt.figure()
+	plt.title('Sensiticity vs False Alarm')
+	plt.xlabel('False Positive Rate')
+	plt.ylabel('Sensitivity')
+	plt.plot(FP, Accu, marker = "*")
+	plt.show()
+print("Sensitivity = " + str(Accu_temp*100) + "%")
+print("FP = " + str(FP_temp*100) + "%")

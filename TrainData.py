@@ -10,10 +10,19 @@ import Normalization
 import pickle
 from functools import reduce
 from sklearn import svm
+import sklearn.linear_model as lm
 
-MinMax = 1
 
-MeasObjCh1 = mm.Measurement('Study_005_channel1.pkg', 1, 10)
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--Methods', type=str, default= 'None')
+parser.add_argument('--Start', '-s', type=int, default=1)
+parser.add_argument('--End', '-e', type=int, default=10)
+args = parser.parse_args()
+Method = args.Methods
+
+
+MeasObjCh1 = mm.Measurement("Study_005_channel1.pkg", args.Start, args.End)
 MeasObjCh1.downsample(2)
 #print(len(MeasObjCh1.seizureData))
 #print(len(MeasObjCh1.label))
@@ -42,21 +51,21 @@ indicesToRemove = reduce(np.union1d, (thetaBandPowerFeature1IsNaN[0], alphaBandP
 #print(indicesToRemove)
 #print(thetaBandPowerFeature1.shape)
 
-# Removing the indices 
+# Removing the indices
 for i in sorted(indicesToRemove.tolist(), reverse = True):
 	thetaBandPowerFeature1 = np.delete(thetaBandPowerFeature1, i)
 	alphaBandPowerFeature1 = np.delete(alphaBandPowerFeature1, i)
 	betaBandPowerFeature1 = np.delete(betaBandPowerFeature1, i)
 	nonlinearEnergyFeature1 = np.delete(nonlinearEnergyFeature1, i)
 	lineLengthFeature1 = np.delete(lineLengthFeature1, i)
-	FeatObj1.labelDownsampled = np.delete(FeatObj1.labelDownsampled, i) 
+	FeatObj1.labelDownsampled = np.delete(FeatObj1.labelDownsampled, i)
 
 # temp means and std
 tempMean = [np.mean(thetaBandPowerFeature1),np.mean(alphaBandPowerFeature1),np.mean(betaBandPowerFeature1),np.mean(nonlinearEnergyFeature1),np.mean(lineLengthFeature1)]
 tempStd = [np.std(thetaBandPowerFeature1),np.std(alphaBandPowerFeature1),np.std(betaBandPowerFeature1),np.std(nonlinearEnergyFeature1),np.std(lineLengthFeature1)]
 
-# Do the feature normalization here 
-if MinMax:
+# Do the feature normalization here
+if Method == "MinMax":
 	print("Using MinMax")
 	thetaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(thetaBandPowerFeature1))
 	alphaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(alphaBandPowerFeature1))
@@ -64,8 +73,8 @@ if MinMax:
 
 	nonlinearEnergyFeature1 = Normalization.normalizeDataMinMax(np.asarray(nonlinearEnergyFeature1))
 	lineLengthFeature1 = Normalization.normalizeDataMinMax(np.asarray(lineLengthFeature1))
-else: 
-	print("Using MEanStd")
+elif (Method == "MeanStd"):
+	print("Using MeanStd")
 	thetaBandPowerFeature1 = Normalization.normalizeDataMeanStd(thetaBandPowerFeature1, np.mean(thetaBandPowerFeature1), np.std(thetaBandPowerFeature1))
 	alphaBandPowerFeature1 = Normalization.normalizeDataMeanStd(alphaBandPowerFeature1, np.mean(alphaBandPowerFeature1), np.std(alphaBandPowerFeature1))
 	betaBandPowerFeature1 = Normalization.normalizeDataMeanStd(betaBandPowerFeature1, np.mean(betaBandPowerFeature1), np.std(betaBandPowerFeature1))
@@ -73,22 +82,31 @@ else:
 	nonlinearEnergyFeature1 = Normalization.normalizeDataMeanStd(nonlinearEnergyFeature1, np.mean(nonlinearEnergyFeature1), np.std(nonlinearEnergyFeature1))
 	lineLengthFeature1 = Normalization.normalizeDataMeanStd(lineLengthFeature1, np.mean(lineLengthFeature1), np.std(lineLengthFeature1))
 ###############################################################################################################################
-
+elif Method == "Regress":
+	pass
+else:
+	print("No method selected.")
+	assert(False)
 features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
 #(thetaBandPowerFeature1))
-#print(features.shape)
+# print(features.type)
 # print(lineLengthFeature1[:5])
 # print(features[:5])
-# print(FeatObj1.labelDownsampled[:5])
+# print(FeatObj1.labelDownsampled.type)
 
 # This part can be modified for different machine learning architectures
-clf = svm.SVC(gamma = 'scale', kernel = 'rbf')
+if Method == "MinMax" or Method == "MeanStd":
+	clf = svm.SVC(gamma = 0.001, kernel = 'rbf')
+
+elif Method == "Regress":
+	# clf = lm.LogisticRegression(random_state=0, solver='lbfgs', multi_class='multinomial')
+	clf=lm.LinearRegression()
 # n_estimators = 10
 # clf = OneVsRestClassifier(BaggingClassifier(SVC(kernel='linear', probability=True, class_weight='auto'), max_samples=1.0 / n_estimators, n_estimators=n_estimators))
 y = clf.fit(features, FeatObj1.labelDownsampled)
 print("Saving...")
-filename = "SVC_trained_0.pkg"
-saveData = {'model' : clf, 'mean': tempMean, 'std': tempStd}
+filename ="trained_0.pkg"
+saveData = {'model' : clf, 'mean': tempMean, 'std': tempStd, 'Method': Method}
 pickle.dump(saveData, open(filename, 'wb'))
 
 # False Alarm Rate
@@ -98,5 +116,5 @@ pickle.dump(saveData, open(filename, 'wb'))
 # Consider them separately
 # For the training, it could be possible to "ignore" some of the zeros in the dataset
 # Explore the different kernals specifically radial basis function kernal
-# Making changes on the shorter datasets 
+# Making changes on the shorter datasets
 # Feature normalization

@@ -53,7 +53,7 @@ class Feature:
 		TP = np.logical_and(self.labelDownsampled, prediction)
 		FP = total - np.count_nonzero(TP)
 		FP_rate = FP / float(total)
-		sensitivity = TP/ float(total_label)
+		sensitivity = np.count_nonzero(TP)/ float(total_label)
 
 		#print(FP/total)
 		#print(accuracy)
