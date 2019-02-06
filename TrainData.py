@@ -11,9 +11,9 @@ import pickle
 from functools import reduce
 from sklearn import svm
 import sklearn.linear_model as lm
-
-
 import argparse
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--Methods', '-m', type=str, default= 'None')
 parser.add_argument('--Normalize', '-n', type=str, default= 'None')
@@ -25,17 +25,12 @@ Norm = args.Normalize
 
 MeasObjCh1 = mm.Measurement("Study_005_channel1.pkg", args.Start, args.End)
 MeasObjCh1.downsample(2)
-#print(len(MeasObjCh1.seizureData))
-#print(len(MeasObjCh1.label))
 
 # Calculating all the relevant features
 FeatObj1 = fe.Feature(MeasObjCh1)
-#print(len(FeatObj1.labelDownsampled))
-
 thetaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 4, 8)
 alphaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 14, 32)
 betaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 8, 12)
-
 nonlinearEnergyFeature1 = ny.calculateFeatureValue(FeatObj1)
 lineLengthFeature1 = ll.calculateFeatureValue(FeatObj1, FeatObj1.stepSize.astype(int), FeatObj1.windowLength.astype(int))
 
@@ -43,14 +38,9 @@ lineLengthFeature1 = ll.calculateFeatureValue(FeatObj1, FeatObj1.stepSize.astype
 thetaBandPowerFeature1IsNaN = np.where(np.isnan(thetaBandPowerFeature1))
 alphaBandPowerFeature1IsNaN = np.where(np.isnan(alphaBandPowerFeature1))
 betaBandPowerFeature1IsNaN = np.where(np.isnan(betaBandPowerFeature1))
-
 nonlinearEnergyFeature1IsNaN = np.where(np.isnan(nonlinearEnergyFeature1))
 lineLengthFeature1IsNaN = np.where(np.isnan(lineLengthFeature1))
-
 indicesToRemove = reduce(np.union1d, (thetaBandPowerFeature1IsNaN[0], alphaBandPowerFeature1IsNaN[0], betaBandPowerFeature1IsNaN[0], nonlinearEnergyFeature1IsNaN[0], lineLengthFeature1IsNaN[0]))
-
-#print(indicesToRemove)
-#print(thetaBandPowerFeature1.shape)
 
 # Removing the indices
 for i in sorted(indicesToRemove.tolist(), reverse = True):
@@ -71,40 +61,35 @@ if Norm == "MinMax":
 	thetaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(thetaBandPowerFeature1))
 	alphaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(alphaBandPowerFeature1))
 	betaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(betaBandPowerFeature1))
-
 	nonlinearEnergyFeature1 = Normalization.normalizeDataMinMax(np.asarray(nonlinearEnergyFeature1))
 	lineLengthFeature1 = Normalization.normalizeDataMinMax(np.asarray(lineLengthFeature1))
+
 elif (Norm == "MeanStd"):
 	print("Using MeanStd")
 	thetaBandPowerFeature1 = Normalization.normalizeDataMeanStd(thetaBandPowerFeature1, np.mean(thetaBandPowerFeature1), np.std(thetaBandPowerFeature1))
 	alphaBandPowerFeature1 = Normalization.normalizeDataMeanStd(alphaBandPowerFeature1, np.mean(alphaBandPowerFeature1), np.std(alphaBandPowerFeature1))
 	betaBandPowerFeature1 = Normalization.normalizeDataMeanStd(betaBandPowerFeature1, np.mean(betaBandPowerFeature1), np.std(betaBandPowerFeature1))
-
 	nonlinearEnergyFeature1 = Normalization.normalizeDataMeanStd(nonlinearEnergyFeature1, np.mean(nonlinearEnergyFeature1), np.std(nonlinearEnergyFeature1))
 	lineLengthFeature1 = Normalization.normalizeDataMeanStd(lineLengthFeature1, np.mean(lineLengthFeature1), np.std(lineLengthFeature1))
-###############################################################################################################################
 
+###############################################################################################################################
 features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
-#(thetaBandPowerFeature1))
-# print(features.type)
-# print(lineLengthFeature1[:5])
-# print(features[:5])
-# print(FeatObj1.labelDownsampled.type)
 
 # This part can be modified for different machine learning architectures
 if Method == 'SVM':
 	print('Using SVM')
 	clf = svm.SVC(gamma = 0.001, kernel = 'rbf')
 
-elif Method == "Regress":
-	print('Using Regression')
-	# clf = lm.LogisticRegression(random_state=0, solver='lbfgs', multi_class='multinomial')
+elif Method == "Log_Regress":
+	print('Using Logistic Regression')
+	clf = lm.LogisticRegression(random_state=0, solver='lbfgs', multi_class='multinomial')
+elif Method == 'Lin_Regress':
+	print('Using Linear Regression')
 	clf=lm.LinearRegression()
 else:
 	print('No ML model provided')
 	assert(False)
-# n_estimators = 10
-# clf = OneVsRestClassifier(BaggingClassifier(SVC(kernel='linear', probability=True, class_weight='auto'), max_samples=1.0 / n_estimators, n_estimators=n_estimators))
+
 y = clf.fit(features, FeatObj1.labelDownsampled)
 print("Saving...")
 filename ="trained_0.pkg"
