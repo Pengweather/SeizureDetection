@@ -8,16 +8,18 @@ import scipy as sp
 import scipy.signal as sp
 import Normalization
 import pickle
-from functools import reduce
-from sklearn import svm
 import matplotlib.pyplot as plt
 import sklearn.linear_model as lm
-
 import argparse
+
+from functools import reduce
+from sklearn import svm
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--filename', '-f', type=str, default= 'trained')
-parser.add_argument('--Start', '-s', type=int, default=11)
-parser.add_argument('--End', '-e', type=int, default=15)
+parser.add_argument('--filename', '-f', type = str, default = 'trained')
+parser.add_argument('--Start', '-s', type = int, default = 11)
+parser.add_argument('--End', '-e', type = int, default = 15)
+
 args = parser.parse_args()
 file = args.filename
 
@@ -101,14 +103,11 @@ for i in range(NUM_CONFIG):
 	features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
 
 
-
 	result = clf.predict(features)
 	#print(result.shape)
 	Accu_temp, FP_temp = FeatObj1.analyze(result)
 	Accu.append(Accu_temp)
 	FP.append(FP_temp)
-
-
 
 
 if Method == "Regress" :
