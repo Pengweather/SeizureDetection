@@ -27,6 +27,7 @@ MeasObjCh1 = mm.Measurement("Study_005_channel1.pkg", args.Start, args.End)
 MeasObjCh1.downsample(2)
 
 # Calculating all the relevant features
+print('Generating Features ...')
 FeatObj1 = fe.Feature(MeasObjCh1)
 thetaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 4, 8)
 alphaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 14, 32)
@@ -56,6 +57,7 @@ tempMean = [np.mean(thetaBandPowerFeature1),np.mean(alphaBandPowerFeature1),np.m
 tempStd = [np.std(thetaBandPowerFeature1),np.std(alphaBandPowerFeature1),np.std(betaBandPowerFeature1),np.std(nonlinearEnergyFeature1),np.std(lineLengthFeature1)]
 
 # Do the feature normalization here
+print('Normalizing ...')
 if Norm == "MinMax":
 	print("Using MinMax")
 	thetaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(thetaBandPowerFeature1))
@@ -76,6 +78,7 @@ elif (Norm == "MeanStd"):
 features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
 
 # This part can be modified for different machine learning architectures
+print('Training ...')
 if Method == 'SVM':
 	print('Using SVM')
 	clf = svm.SVC(gamma = 0.001, kernel = 'rbf')

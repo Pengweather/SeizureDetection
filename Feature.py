@@ -13,7 +13,6 @@ DEFAULT_SEIZURE_HOLDTIME_SECONDS = 60
 DEFAULT_THRESHOLD_BASELINE_FACTOR = 5
 DEFAULT_COST_SENSITIVITY = 50
 DEFAULT_COST_FALSEALARM_RATE = 1
-TOL = 200
 
 class WindowStepCompError(RuntimeError):
 	def __init__(self, arg):
@@ -26,7 +25,7 @@ class StartEndLengthError(RuntimeError):
 class Feature:
 	def __init__ (self, measurementObject, stepSizeSeconds = DEFAULT_STEPSIZE_SECONDS, windowLengthSeconds = DEFAULT_WINDOWLENGTH_SECONDS, baselineAverageTimeSeconds = DEFAULT_BASELINE_AVERAGETIME_SECONDS, averageWindowShiftSeconds = DEFAULT_AVERAGE_WINDOWSHIFT_SECONDS, baselineRefreshRateSeconds = DEFAULT_BASELINE_REFRESHRATE_SECONDS, seizureHoldTimeSeconds = DEFAULT_SEIZURE_HOLDTIME_SECONDS, thresholdBaselineFactor = DEFAULT_THRESHOLD_BASELINE_FACTOR, costSensitivity = DEFAULT_COST_SENSITIVITY, costFalseAlarmRate = DEFAULT_COST_FALSEALARM_RATE):
 		self.measurement = measurementObject
-		self.stepSize = np.floor(self.measurement.Fs * stepSizeSeconds).astype(int)
+		self.stepSize = np.floor(self.measurement.Fs * stepSizeSeconds / 2).astype(int)
 		self.windowLength = np.floor(self.measurement.Fs * windowLengthSeconds)
 		if (self.windowLength % self.stepSize != 0.0):
 			raise WindowStepCompError("Window length has to be a multiple of step size!")

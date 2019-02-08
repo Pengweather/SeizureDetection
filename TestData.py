@@ -44,6 +44,7 @@ nonlinearEnergyFeature1IsNaN = np.where(np.isnan(nonlinearEnergyFeature1))
 lineLengthFeature1IsNaN = np.where(np.isnan(lineLengthFeature1))
 indicesToRemove = reduce(np.union1d, (thetaBandPowerFeature1IsNaN[0], alphaBandPowerFeature1IsNaN[0], betaBandPowerFeature1IsNaN[0], nonlinearEnergyFeature1IsNaN[0], lineLengthFeature1IsNaN[0]))
 
+data = MeasObjCh1.seizureData[::FeatObj1.stepSize]
 # Removing the indices
 for i in sorted(indicesToRemove.tolist(), reverse = True):
 	thetaBandPowerFeature1 = np.delete(thetaBandPowerFeature1, i)
@@ -52,7 +53,7 @@ for i in sorted(indicesToRemove.tolist(), reverse = True):
 	nonlinearEnergyFeature1 = np.delete(nonlinearEnergyFeature1, i)
 	lineLengthFeature1 = np.delete(lineLengthFeature1, i)
 	FeatObj1.labelDownsampled = np.delete(FeatObj1.labelDownsampled, i)
-
+	data = np.delete(data, i)
 Accu = []
 FP = []
 
@@ -97,15 +98,18 @@ if Method == "Lin_Regress" :
 		Accu_temp, FP_temp = FeatObj1.analyze(predict)
 		Accu.append(Accu_temp)
 		FP.append(FP_temp)
-
+print(len(data))
+print(len(result))
 print("Sensitivity = " + str(Accu_temp*100) + "%")
 print("FP = " + str(FP_temp*100) + "%")
 plt.figure()
 plt.xlabel('Index')
 plt.ylabel('Label')
 plt.title('Actual Label vs Prediction' + "(" + Method + ')')
-plt.plot(result,color = 'r',label = 'Predicted')
-plt.plot(FeatObj1.labelDownsampled,color = 'g',label = 'Actual')
+plt.plot(data)
+plt.plot(np.multiply(data,result),color = 'r',label = 'Predicted')
+plt.plot(FeatObj1.labelDownsampled *max(data),color = 'g',label = 'Actual')
+
 plt.legend(loc='upper left')
 
 # Plot out Sensitivity and False alarm for different threshold
