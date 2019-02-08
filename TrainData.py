@@ -15,31 +15,33 @@ import sklearn.linear_model as lm
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--Methods', '-m', type=str, default= 'None')
-parser.add_argument('--Normalize', '-n', type=str, default= 'None')
+parser.add_argument('--Methods', '-m', type=str, default= 'SVM')
+parser.add_argument('--Normalize', '-n', type=str, default= 'MeanStd')
 parser.add_argument('--Start', '-s', type=int, default=1)
-parser.add_argument('--End', '-e', type=int, default=10)
-# Adding another parser argument for the purpose of testing different SVM kernels 
-parser.add_argument('--SVMkernel', '-k', type = str, default = 'rbf') 
+parser.add_argument('--End', '-e', type=int, default=10) 
 
 args = parser.parse_args()
 Method = args.Methods
 Norm = args.Normalize
 
+# Uploading data from a measurement text file
 MeasObjCh1 = mm.Measurement("Study_005_channel1.pkg", args.Start, args.End)
 MeasObjCh1.downsample(2)
-#print(len(MeasObjCh1.seizureData))
-#print(len(MeasObjCh1.label))
 
-# Calculating all the relevant features
+# Calculating all the relevant features using information encompassing all the other
+# features
 FeatObj1 = fe.Feature(MeasObjCh1)
-#print(len(FeatObj1.labelDownsampled))
 
+# Calculating the power within certain frequency bands from the data that are of
+# importance in seizure detection
 thetaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 4, 8)
 alphaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 14, 32)
 betaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 8, 12)
 
+# Calculating the overall nonlinear energy of the data
 nonlinearEnergyFeature1 = ny.calculateFeatureValue(FeatObj1)
+
+# Calculating the line length of the data
 lineLengthFeature1 = ll.calculateFeatureValue(FeatObj1, FeatObj1.stepSize.astype(int), FeatObj1.windowLength.astype(int))
 
 # Weed out all the bad values here
@@ -61,7 +63,7 @@ for i in sorted(indicesToRemove.tolist(), reverse = True):
 	lineLengthFeature1 = np.delete(lineLengthFeature1, i)
 	FeatObj1.labelDownsampled = np.delete(FeatObj1.labelDownsampled, i)
 
-# temp means and std
+# Storing the temporary means and standard deviations of the features
 tempMean = [np.mean(thetaBandPowerFeature1),np.mean(alphaBandPowerFeature1),np.mean(betaBandPowerFeature1),np.mean(nonlinearEnergyFeature1),np.mean(lineLengthFeature1)]
 tempStd = [np.std(thetaBandPowerFeature1),np.std(alphaBandPowerFeature1),np.std(betaBandPowerFeature1),np.std(nonlinearEnergyFeature1),np.std(lineLengthFeature1)]
 
@@ -71,7 +73,6 @@ if Norm == "MinMax":
 	thetaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(thetaBandPowerFeature1))
 	alphaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(alphaBandPowerFeature1))
 	betaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(betaBandPowerFeature1))
-
 	nonlinearEnergyFeature1 = Normalization.normalizeDataMinMax(np.asarray(nonlinearEnergyFeature1))
 	lineLengthFeature1 = Normalization.normalizeDataMinMax(np.asarray(lineLengthFeature1))
 elif (Norm == "MeanStd"):
@@ -79,47 +80,39 @@ elif (Norm == "MeanStd"):
 	thetaBandPowerFeature1 = Normalization.normalizeDataMeanStd(thetaBandPowerFeature1, np.mean(thetaBandPowerFeature1), np.std(thetaBandPowerFeature1))
 	alphaBandPowerFeature1 = Normalization.normalizeDataMeanStd(alphaBandPowerFeature1, np.mean(alphaBandPowerFeature1), np.std(alphaBandPowerFeature1))
 	betaBandPowerFeature1 = Normalization.normalizeDataMeanStd(betaBandPowerFeature1, np.mean(betaBandPowerFeature1), np.std(betaBandPowerFeature1))
-
 	nonlinearEnergyFeature1 = Normalization.normalizeDataMeanStd(nonlinearEnergyFeature1, np.mean(nonlinearEnergyFeature1), np.std(nonlinearEnergyFeature1))
 	lineLengthFeature1 = Normalization.normalizeDataMeanStd(lineLengthFeature1, np.mean(lineLengthFeature1), np.std(lineLengthFeature1))
-###############################################################################################################################
+else:
+	print("No proper normalization tool was selected")
+	assert(False)
 
+# Reshaping the features array in order to allow classification and training to be possible
 features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
-#(thetaBandPowerFeature1))
-# print(features.type)
-# print(lineLengthFeature1[:5])
-# print(features[:5])
-# print(FeatObj1.labelDownsampled.type)
 
-# This part can be modified for different machine learning architectures
+
+# This part can be modified for different machine learning architecturesor 
+kernels = ['rbf', 'linear', 'poly']
 if Method == 'SVM':
 	print('Using SVM')
-	Kernel = args.SVMkernel
-	if (Kernel == 'rbf'):
-		clf = svm.SVC(gamma = 0.001, kernel = 'rbf')
-		
+	for i in range(len(kernels)):
+		kern = kernels[i]
+		clf = svm.SVC(gamma = 0.001, kernel = kern)
+		y = clf.fit(features, FeatObj1.labelDownsampled)
+		print("Saving...")
+		filename ="trained_" + str(i) + ".pkg"
+		saveData = {'model' : clf, 'mean': tempMean, 'std': tempStd, 'Method': Method, 'Norm': Norm}
+		pickle.dump(saveData, open(filename, 'wb'))
 
 elif Method == "Regress":
 	print('Using Regression')
 	# clf = lm.LogisticRegression(random_state=0, solver='lbfgs', multi_class='multinomial')
 	clf = lm.LinearRegression()
+	y = clf.fit(features, FeatObj1.labelDownsampled)
+	print("Saving...")
+	filename ="trained_" + str(0) + ".pkg"
+	saveData = {'model' : clf, 'mean': tempMean, 'std': tempStd, 'Method': Method, 'Norm': Norm}
+	pickle.dump(saveData, open(filename, 'wb'))
 else:
 	print('No ML model provided')
 	assert(False)
-# n_estimators = 10
-# clf = OneVsRestClassifier(BaggingClassifier(SVC(kernel='linear', probability=True, class_weight='auto'), max_samples=1.0 / n_estimators, n_estimators=n_estimators))
-y = clf.fit(features, FeatObj1.labelDownsampled)
-print("Saving...")
-filename ="trained_0.pkg"
-saveData = {'model' : clf, 'mean': tempMean, 'std': tempStd, 'Method': Method, 'Norm': Norm}
-pickle.dump(saveData, open(filename, 'wb'))
 
-# False Alarm Rate
-# Calculate the sensitivity which is the true positive rate and the specificaty is true negative rate
-# Address the matching of the trained and actual data
-# Better to calculate those two than accuracy
-# Consider them separately
-# For the training, it could be possible to "ignore" some of the zeros in the dataset
-# Explore the different kernals specifically radial basis function kernal
-# Making changes on the shorter datasets
-# Feature normalization
