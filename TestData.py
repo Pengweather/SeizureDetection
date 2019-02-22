@@ -84,9 +84,10 @@ for i in range(NUM_CONFIG):
 	features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
 
 	result = clf.predict(features)
-	Accu_temp, FP_temp = FeatObj1.analyze(result)
-	Accu.append(Accu_temp)
-	FP.append(FP_temp)
+	if  not Method == "Lin_Regress":
+		Accu_temp, FP_temp = FeatObj1.analyze(result)
+		Accu.append(Accu_temp)
+		FP.append(FP_temp)
 
 # Testing different Threshold for linear regression
 if Method == "Lin_Regress" :
@@ -98,6 +99,7 @@ if Method == "Lin_Regress" :
 		Accu_temp, FP_temp = FeatObj1.analyze(predict)
 		Accu.append(Accu_temp)
 		FP.append(FP_temp)
+	result = np.asarray(result + (0.8)).astype(int)
 print(len(data))
 print(len(result))
 print("Sensitivity = " + str(Accu_temp*100) + "%")
