@@ -60,7 +60,7 @@ class Feature:
 		assert(len(redge) == len(fedge))
 		detected = 0
 		for i in range(len(redge)):
-			if np.count_nonzero(prediction[redge[i]:fedge[i]])/float(fedge[i]-redge[i]) >= 0.5:
+			if np.count_nonzero(prediction[redge[i]:fedge[i]])/float(fedge[i]-redge[i]) >= 0.1:
 				detected += 1
 
 		sensitivity = detected/float(len(redge))

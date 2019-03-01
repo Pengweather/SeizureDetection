@@ -12,6 +12,7 @@ from functools import reduce
 from sklearn import svm
 import matplotlib.pyplot as plt
 import sklearn.linear_model as lm
+from sklearn.ensemble import RandomForestClassifier
 import argparse
 
 NUM_CONFIG = 1
@@ -19,8 +20,8 @@ NUM_CONFIG = 1
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--filename', '-f', type=str, default= 'trained')
-parser.add_argument('--Start', '-s', type=int, default=11)
-parser.add_argument('--End', '-e', type=int, default=15)
+parser.add_argument('--Start', '-s', type=int, default=140)
+parser.add_argument('--End', '-e', type=int, default=151)
 args = parser.parse_args()
 file = args.filename
 
@@ -66,44 +67,45 @@ for i in range(NUM_CONFIG):
 	Norm = loadData['Norm']
 	if Norm == "MeanStd":
 		print("Using MeanStd")
-		thetaBandPowerFeature1 = Normalization.normalizeDataMeanStd(np.asarray(thetaBandPowerFeature1),loadData['mean'][0],loadData['std'][0])
-		alphaBandPowerFeature1 = Normalization.normalizeDataMeanStd(np.asarray(alphaBandPowerFeature1),loadData['mean'][1],loadData['std'][1])
-		betaBandPowerFeature1 = Normalization.normalizeDataMeanStd(np.asarray(betaBandPowerFeature1),loadData['mean'][2],loadData['std'][2])
-		nonlinearEnergyFeature1 = Normalization.normalizeDataMeanStd(np.asarray(nonlinearEnergyFeature1),loadData['mean'][3],loadData['std'][3])
-		lineLengthFeature1 = Normalization.normalizeDataMeanStd(np.asarray(lineLengthFeature1),loadData['mean'][4],loadData['std'][4])
+		thetaBandPowerFeature = Normalization.normalizeDataMeanStd(np.asarray(thetaBandPowerFeature1),loadData['mean'][0],loadData['std'][0])
+		alphaBandPowerFeature = Normalization.normalizeDataMeanStd(np.asarray(alphaBandPowerFeature1),loadData['mean'][1],loadData['std'][1])
+		betaBandPowerFeature = Normalization.normalizeDataMeanStd(np.asarray(betaBandPowerFeature1),loadData['mean'][2],loadData['std'][2])
+		nonlinearEnergyFeature = Normalization.normalizeDataMeanStd(np.asarray(nonlinearEnergyFeature1),loadData['mean'][3],loadData['std'][3])
+		lineLengthFeature = Normalization.normalizeDataMeanStd(np.asarray(lineLengthFeature1),loadData['mean'][4],loadData['std'][4])
 
 	elif Norm == "MinMax":
 		print("Using MinMax")
-		thetaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(thetaBandPowerFeature1))
-		alphaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(alphaBandPowerFeature1))
-		betaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(betaBandPowerFeature1))
-		nonlinearEnergyFeature1 = Normalization.normalizeDataMinMax(np.asarray(nonlinearEnergyFeature1))
-		lineLengthFeature1 = Normalization.normalizeDataMinMax(np.asarray(lineLengthFeature1))
-
+		thetaBandPowerFeature = Normalization.normalizeDataMinMax(np.asarray(thetaBandPowerFeature1))
+		alphaBandPowerFeature = Normalization.normalizeDataMinMax(np.asarray(alphaBandPowerFeature1))
+		betaBandPowerFeature = Normalization.normalizeDataMinMax(np.asarray(betaBandPowerFeature1))
+		nonlinearEnergyFeature = Normalization.normalizeDataMinMax(np.asarray(nonlinearEnergyFeature1))
+		lineLengthFeature = Normalization.normalizeDataMinMax(np.asarray(lineLengthFeature1))
+	else:
+		thetaBandPowerFeature = thetaBandPowerFeature1
+		alphaBandPowerFeature = alphaBandPowerFeature1
+		betaBandPowerFeature = betaBandPowerFeature1
+		nonlinearEnergyFeature = nonlinearEnergyFeature1
+		lineLengthFeature = lineLengthFeature1
 	###############################################################################################################################
-	features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
+	features = np.reshape(np.hstack((thetaBandPowerFeature,alphaBandPowerFeature, betaBandPowerFeature, nonlinearEnergyFeature,lineLengthFeature)),(-1,5),1)
 
 	result = clf.predict(features)
 	if  not Method == "Lin_Regress":
 		Accu_temp, FP_temp = FeatObj1.analyze(result)
 		Accu.append(Accu_temp)
 		FP.append(FP_temp)
-
-# Testing different Threshold for linear regression
-if Method == "Lin_Regress" :
-	Accu = []
-	FP = []
-	for i in range (20):
-		threshold = 0.09 + i * 0.05
-		predict = np.asarray(result + (1-threshold)).astype(int)
-		Accu_temp, FP_temp = FeatObj1.analyze(predict)
+	else:
+		threshold = loadData['Threshold']
+		result[result >= threshold] = 1
+		result[result < threshold] = 0
+		Accu_temp, FP_temp = FeatObj1.analyze(result)
 		Accu.append(Accu_temp)
 		FP.append(FP_temp)
-	result = np.asarray(result + (0.8)).astype(int)
-print(len(data))
-print(len(result))
+# Testing different Threshold for linear regression
 print("Sensitivity = " + str(Accu_temp*100) + "%")
 print("FP = " + str(FP_temp*100) + "%")
+print(len(data))
+print(len(result))
 plt.figure()
 plt.xlabel('Index')
 plt.ylabel('Label')
@@ -111,18 +113,5 @@ plt.title('Actual Label vs Prediction' + "(" + Method + ')')
 plt.plot(data)
 plt.plot(np.multiply(data,result),color = 'r',label = 'Predicted')
 plt.plot(FeatObj1.labelDownsampled *max(data),color = 'g',label = 'Actual')
-
 plt.legend(loc='upper left')
-
-# Plot out Sensitivity and False alarm for different threshold
-if Method == "Lin_Regress" :
-	plt.show(block=False)
-	plt.figure()
-	plt.title('Sensiticity vs False Alarm')
-	plt.xlabel('False Positive Rate')
-	plt.ylabel('Sensitivity')
-	plt.plot(FP, Accu, marker = "*")
-	plt.show()
-
-else:
-	plt.show()
+plt.show()

@@ -11,6 +11,7 @@ import pickle
 from functools import reduce
 from sklearn import svm
 import sklearn.linear_model as lm
+from sklearn.ensemble import RandomForestClassifier
 import argparse
 import matplotlib.pyplot as plt
 ################################### HELPER FUNCTIONS ###################################
@@ -86,6 +87,10 @@ def Train(features,Train_Obj ,Method):
 	elif Method == 'Lin_Regress':
 		print('Using Linear Regression')
 		clf=lm.LinearRegression()
+	elif Method == 'Ran_Forest':
+		print("Using Random Forest")
+		clf = RandomForestClassifier(n_estimators=100, max_depth=3,random_state=0)
+
 	else:
 		print('No ML model provided')
 		assert(False)
@@ -101,15 +106,17 @@ def show_ROC(FP, Sens):
 	plt.show()
 
 
+def score(sens,FP):
+	score = (1-sens)**2 + (FP)**2
+	return score
 
 
-
-
+#################################### Main ####################################
 parser = argparse.ArgumentParser()
-parser.add_argument('--Methods', '-m', type=str, default= 'None')
+parser.add_argument('--Methods', '-m', type=str, default= 'Lin_Regress')
 parser.add_argument('--Normalize', '-n', type=str, default= 'None')
 parser.add_argument('--Start', '-s', type=int, default=1)
-parser.add_argument('--End', '-e', type=int, default=20)
+parser.add_argument('--End', '-e', type=int, default=25)
 args = parser.parse_args()
 Method = args.Methods
 Norm = args.Normalize
@@ -126,20 +133,44 @@ clf = Train(train_feature, Train_Obj, Method)
 ##cross validation
 Sens = []
 FP = []
+lowest_score = 20
+Best_Threshold = 0
+lowest_FP = 1
+Best_sens = 0
+j = 0
+result = clf.predict(cv_feature)
 if Method == "Lin_Regress" :
-	Best_Threshold = 0
-	result = clf.predict(cv_feature)
-	for i in range(20):
-		threshold = 0.09 + i * 0.05
-		predict = np.asarray(result + (1-threshold)).astype(int)
+	predict = np.zeros(len(result))
+	n_thrs = 100
+	for i in range(int(n_thrs) + 1):
+		threshold = 0.1+ i * 0.9/float(n_thrs)
+		predict[result >= threshold] = 1
+		predict[result < threshold] = 0
 		Sens_temp, FP_temp = CV_Obj.analyze(predict)
 		Sens.append(Sens_temp)
 		FP.append(FP_temp)
-
-
+		score_curr = score(Sens_temp,FP_temp)
+		if score_curr < lowest_score:
+			lowest_score = score_curr
+			Best_Threshold = threshold
+			lowest_FP = FP_temp
+			j=i
+			Best_sens = Sens_temp
+		elif score_curr == lowest_score and FP_temp < lowest_FP:
+			lowest_score = score_curr
+			Best_Threshold = threshold
+			lowest_FP = FP_temp
+			j=i
+			Best_sens = Sens_temp
+else:
+	Sens_temp, FP_temp = CV_Obj.analyze(result)
+	Sens.append(Sens_temp)
+	FP.append(FP_temp)
+	lowest_score = score(Sens_temp,FP_temp)
 print("Saving...")
 filename ="trained_0.pkg"
 saveData = {'model' : clf, 'mean': tempMean, 'std': tempStd, 'Method': Method, 'Norm': Norm, 'Threshold': Best_Threshold}
 pickle.dump(saveData, open(filename, 'wb'))
-
+print("Lowest score is: " + str(lowest_score) + ", with Threshold = " + str(Best_Threshold))
+print("Best sensitivity is " + str(Best_sens)+ " at iteration " + str(j))
 show_ROC(FP, Sens)
