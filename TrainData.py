@@ -89,15 +89,15 @@ else:
 # Reshaping the features array in order to allow classification and training to be possible
 features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
 
-
 # This part can be modified for different machine learning architecturesor 
-kernels = ['rbf', 'linear', 'poly']
+kernels = ['rbf', 'linear']
+# Once more 
+# kernels = ['rbf', 'linear', 'poly']
 if Method == 'SVM':
 	print('Using SVM')
 	for i in range(len(kernels)):
-		kern = kernels[i]
-		clf = svm.SVC(gamma = 0.001, kernel = kern)
-		y = clf.fit(features, FeatObj1.labelDownsampled)
+		clf = svm.SVC(gamma = 0.5, kernel = kernels[i])
+		clf.fit(features, FeatObj1.labelDownsampled)
 		print("Saving...")
 		filename ="trained_" + str(i) + ".pkg"
 		saveData = {'model' : clf, 'mean': tempMean, 'std': tempStd, 'Method': Method, 'Norm': Norm}
@@ -107,7 +107,7 @@ elif Method == "Regress":
 	print('Using Regression')
 	# clf = lm.LogisticRegression(random_state=0, solver='lbfgs', multi_class='multinomial')
 	clf = lm.LinearRegression()
-	y = clf.fit(features, FeatObj1.labelDownsampled)
+	clf.fit(features, FeatObj1.labelDownsampled)
 	print("Saving...")
 	filename ="trained_" + str(0) + ".pkg"
 	saveData = {'model' : clf, 'mean': tempMean, 'std': tempStd, 'Method': Method, 'Norm': Norm}
