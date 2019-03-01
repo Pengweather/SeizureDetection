@@ -57,10 +57,11 @@ for i in sorted(indicesToRemove.tolist(), reverse = True):
 	data = np.delete(data, i)
 
 # Upload the results from training
+kernels = ['rbf', 'linear']
 for i in range(NUM_CONFIG):
 	if not i == 0:
 		plt.show(block=False)
-	filename = file + "_" + str(i) + ".pkg"
+	filename = file + "_" + kernels[i] + ".pkg"
 	loadData = pickle.load(open(filename, 'rb'))
 	clf = loadData['model']
 	Method = loadData['Method']
@@ -93,6 +94,7 @@ for i in range(NUM_CONFIG):
 	plt.legend(loc='upper left')
 
 # Testing different Threshold for linear regression
+'''
 if Method == "Lin_Regress" :
 	Accu = []
 	FP = []
@@ -103,7 +105,7 @@ if Method == "Lin_Regress" :
 		Accu.append(Accu_temp)
 		FP.append(FP_temp)
 
-'''
+
 print("Sensitivity = " + str(Accu_temp*100) + "%")
 print("FP = " + str(FP_temp*100) + "%")
 '''
