@@ -19,11 +19,13 @@ NUM_CONFIG = 1
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--filename', '-f', type=str, default= 'trained')
+parser.add_argument('--filename', '-f', type=str, default= 'None')
 parser.add_argument('--Start', '-s', type=int, default=140)
 parser.add_argument('--End', '-e', type=int, default=151)
 args = parser.parse_args()
-file = args.filename
+if args.filename == 'None':
+	assert(False)
+file = 'trained_' + args.filename
 
 # Uploading the testing data
 MeasObjCh1 = mm.Measurement('Study_005_channel1.pkg', args.Start, args.End)
@@ -91,14 +93,14 @@ for i in range(NUM_CONFIG):
 
 	result = clf.predict(features)
 	if  not Method == "Lin_Regress":
-		Accu_temp, FP_temp = FeatObj1.analyze(result)
+		_,Accu_temp, FP_temp = FeatObj1.analyze(result)
 		Accu.append(Accu_temp)
 		FP.append(FP_temp)
 	else:
 		threshold = loadData['Threshold']
 		result[result >= threshold] = 1
 		result[result < threshold] = 0
-		Accu_temp, FP_temp = FeatObj1.analyze(result)
+		_,Accu_temp, FP_temp = FeatObj1.analyze(result)
 		Accu.append(Accu_temp)
 		FP.append(FP_temp)
 # Testing different Threshold for linear regression

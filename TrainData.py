@@ -76,7 +76,7 @@ def gen_feature(Norm,Start, End, mean=None,std=None):
 	features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
 	return features, FeatObj1, tempMean, tempStd
 
-def Train(features,Train_Obj ,Method):
+def Train(features,Train_Obj ,Method,nt,md):
 	print('Training ...')
 	if Method == 'SVM':
 		print('Using SVM')
@@ -89,7 +89,7 @@ def Train(features,Train_Obj ,Method):
 		clf=lm.LinearRegression()
 	elif Method == 'Ran_Forest':
 		print("Using Random Forest")
-		clf = RandomForestClassifier(n_estimators=100, max_depth=3,random_state=0)
+		clf = RandomForestClassifier(n_estimators=nt, max_depth=md,random_state=0)
 
 	else:
 		print('No ML model provided')
@@ -110,6 +110,13 @@ def score(sens,FP):
 	score = (1-sens)**2 + (FP)**2
 	return score
 
+def show_accum(Accum_sens):
+	plt.figure()
+	plt.title('Accmulative Sensiticity')
+	plt.xlabel('Seizure index')
+	plt.ylabel('Accmulative Sensitivity [%]')
+	plt.plot(Accum_sens, marker = "*")
+	plt.show()
 
 #################################### Main ####################################
 parser = argparse.ArgumentParser()
@@ -128,8 +135,6 @@ Train_end = Start + int(ranges*0.6)
 
 train_feature, Train_Obj, tempMean,tempStd = gen_feature(Norm, Start, Train_end,None,None)
 cv_feature, CV_Obj,_,_ = gen_feature(Norm, Train_end+1, End, tempMean, tempStd)
-clf = Train(train_feature, Train_Obj, Method)
-
 ##cross validation
 Sens = []
 FP = []
@@ -138,39 +143,73 @@ Best_Threshold = 0
 lowest_FP = 1
 Best_sens = 0
 j = 0
-result = clf.predict(cv_feature)
+Accum_sens = 0
 if Method == "Lin_Regress" :
+	clf = Train(train_feature, Train_Obj, Method,0,0)
+	result = clf.predict(cv_feature)
 	predict = np.zeros(len(result))
 	n_thrs = 100
 	for i in range(int(n_thrs) + 1):
-		threshold = 0.1+ i * 0.9/float(n_thrs)
+		threshold =  i * 1/float(n_thrs)
 		predict[result >= threshold] = 1
 		predict[result < threshold] = 0
-		Sens_temp, FP_temp = CV_Obj.analyze(predict)
+		Accum_sens_temp, Sens_temp, FP_temp = CV_Obj.analyze(predict)
 		Sens.append(Sens_temp)
 		FP.append(FP_temp)
 		score_curr = score(Sens_temp,FP_temp)
+		#print(np.count_nonzero(result >= threshold))
 		if score_curr < lowest_score:
 			lowest_score = score_curr
 			Best_Threshold = threshold
 			lowest_FP = FP_temp
 			j=i
 			Best_sens = Sens_temp
+			Accum_sens = Accum_sens_temp
 		elif score_curr == lowest_score and FP_temp < lowest_FP:
 			lowest_score = score_curr
 			Best_Threshold = threshold
 			lowest_FP = FP_temp
 			j=i
 			Best_sens = Sens_temp
-else:
-	Sens_temp, FP_temp = CV_Obj.analyze(result)
-	Sens.append(Sens_temp)
-	FP.append(FP_temp)
-	lowest_score = score(Sens_temp,FP_temp)
+			Accum_sens = Accum_sens_temp
+elif Method == "Ran_Forest":
+	for nt in [1,3,5,10,20,30,40,50,60,70,80,90,100]:
+		for md in [1,2,3,4,5,6,7]:
+			clf_temp = Train(train_feature, Train_Obj, Method,nt,md)
+			result = clf_temp.predict(cv_feature)
+			Accum_sens_temp, Sens_temp, FP_temp = CV_Obj.analyze(result)
+			Sens.append(Sens_temp)
+			FP.append(FP_temp)
+			score_curr = score(Sens_temp,FP_temp)
+			if score_curr < lowest_score:
+				lowest_score = score_curr
+				Best_Threshold = threshold
+				lowest_FP = FP_temp
+				j=i
+				Best_sens = Sens_temp
+				Accum_sens = Accum_sens_temp
+				clf = clf_temp
+				print("=========================================")
+				print("Best number of trees: "+str(nt))
+				print("Best maximum depth: "+str(md))
+				print("=========================================")
+			elif score_curr == lowest_score and FP_temp < lowest_FP:
+				lowest_score = score_curr
+				Best_Threshold = threshold
+				lowest_FP = FP_temp
+				j=i
+				Best_sens = Sens_temp
+				Accum_sens = Accum_sens_temp
+				clf = clf_temp
+				print("=========================================")
+				print("Best number of trees: "+str(nt))
+				print("Best maximum depth: "+str(md))
+				print("=========================================")
 print("Saving...")
-filename ="trained_0.pkg"
+filename ="trained_"+ Method + "_0.pkg"
 saveData = {'model' : clf, 'mean': tempMean, 'std': tempStd, 'Method': Method, 'Norm': Norm, 'Threshold': Best_Threshold}
 pickle.dump(saveData, open(filename, 'wb'))
 print("Lowest score is: " + str(lowest_score) + ", with Threshold = " + str(Best_Threshold))
-print("Best sensitivity is " + str(Best_sens)+ " at iteration " + str(j))
+print("Best sensitivity is " + str(Best_sens)+" Best FP is " + str(lowest_FP)+ " at iteration " + str(j))
 show_ROC(FP, Sens)
+show_accum(Accum_sens)

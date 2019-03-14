@@ -48,10 +48,10 @@ class Feature:
 	def analyze(self, prediction):
 		# Prediction edges
 		total = np.count_nonzero(prediction)
-		#total_label = np.count_nonzero(self.labelDownsampled)
 		TP = np.logical_and(self.labelDownsampled, prediction)
+		Negatives = np.count_nonzero(self.labelDownsampled == 0)
 		FP = total - np.count_nonzero(TP)
-		FP_rate = FP / float(len(prediction)-total)
+		FP_rate = FP / float(Negatives)
 		first = np.append(self.labelDownsampled,0)
 		second = np.append(0,self.labelDownsampled)
 		edge = first - second
@@ -59,13 +59,15 @@ class Feature:
 		fedge = np.where(edge==-1)[0]
 		assert(len(redge) == len(fedge))
 		detected = 0
+		accum = []
 		for i in range(len(redge)):
 			if np.count_nonzero(prediction[redge[i]:fedge[i]])/float(fedge[i]-redge[i]) >= 0.1:
 				detected += 1
-
+			accum.append(detected/float(i+1))
 		sensitivity = detected/float(len(redge))
 		#np.count_nonzero(TP)/ float(total_label)
-
-		#print(FP/total)
-		#print(accuracy)
-		return sensitivity, FP_rate
+		# print("########################################")
+		# print(np.count_nonzero(TP))
+		# print(Negatives)
+		# print(total)
+		return accum, sensitivity, FP_rate
