@@ -4,8 +4,8 @@ import Generation as g
 
 from functools import reduce
 from sklearn import svm
-
 from matplotlib import pyplot as plt
+
 import numpy as np
 import os, fnmatch
 import pickle
@@ -30,11 +30,14 @@ def validate(load_data, feat_dict):
     feat_array = g.convertDictToFeatArray(feat_dict)
     return clf.predict(feat_array)
 
-def plot(data, result, label_downsampled, method):
+def plot(load_data, data, result, label_downsampled):
+    gamma = load_data['gamma']
+    method = load_data['method']
+
     plt.figure()
     plt.xlabel('Index')
     plt.ylabel('Label')
-    plt.title('Actual Label vs Prediction' + "(" + method + ')_')
+    plt.title('Actual Label vs Prediction' + "(" + method + ', ' + str(gamma) + ')')
     plt.plot(data)
     plt.plot(np.multiply(data, result), color = 'r', label = 'Predicted')
     plt.plot(label_downsampled * max(data), color = 'g', label = 'Actual')
@@ -62,15 +65,15 @@ def main():
 
     feat_label_dict = g.getFeaturesAndLabel(meas_obj, feat_obj)
     feat_dict = dict((k, feat_label_dict[k]) for k in feat_key if k in feat_label_dict)
-    label_downsampled = feat_label_dict['label']
     data = feat_label_dict['data']
+    label_downsampled = feat_label_dict['label']
 
     # Good practice to check that the correct keys are generated for their value
     if (g.checkDictForFeat(feat_dict) == False):
         assert(False)
 
     list_of_files = os.listdir('.')
-    pattern = "trained_rbf_gamma_*"
+    pattern = "trained_rbf_gamma_8*"
     trained_files = np.asarray([])
     for entry in list_of_files:
         if fnmatch.fnmatch(entry, pattern):
@@ -80,8 +83,7 @@ def main():
         load_data = loadSVM(i)
         temp_feat_dict = copy.deepcopy(feat_dict)
         result = validate(load_data, temp_feat_dict)
-        print(list(result.flatten()).count(0))
-        plot(data, result, label_downsampled, load_data['method'])
+        plot(load_data, data, result, label_downsampled)
 
 if __name__ == "__main__":
     main()

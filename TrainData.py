@@ -13,12 +13,10 @@ feat_key = ['tbp', 'abp', 'bbp', 'nonlin', 'line']
 
 def train(feat_array, label_downsampled, kernel, gamma = 0):
 	# This part can be modified for different machine learning architectures
-	print(gamma)
 	if (gamma == 0):
 		clf = svm.SVC(gamma = 'scale', kernel = kernel)
 		clf.fit(feat_array, label_downsampled)
 	else:
-		print("Hello")
 		clf = svm.SVC(gamma = gamma, kernel = kernel)
 		clf.fit(feat_array, label_downsampled)
 	print("Training has been completed")
@@ -44,7 +42,8 @@ def main():
 	# cross validation
 	parser.add_argument('--CrossValid', '-c', type = bool, default = False)
 	parser.add_argument('--GammaMin', type = float, default = 0.0)
-	parser.add_argument('--GammaMax', type = float, default = 1.0)
+	parser.add_argument('--GammaMax', type = float, default = 10)
+	parser.add_argument('--Increment', type = float, default = 1.0)
 
 	args = parser.parse_args()
 
@@ -88,9 +87,8 @@ def main():
 
 	feat_array = g.convertDictToFeatArray(feat_dict)
 	if (args.CrossValid == True):
-		print("Conducting validation testing...")
-		for i in np.arange(args.GammaMin, args.GammaMax, 0.1):
-			print(i)
+		for i in np.arange(args.GammaMin, args.GammaMax, args.Increment):
+			print("Training test set using " + str(i) + " for gamma")
 			c = train(feat_array, label_downsampled, args.Kernel, i)
 			saveSVM(c, tempMean, tempStd, args.Normalize, args.Kernel, i)
 	else:
