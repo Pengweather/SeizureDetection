@@ -1,102 +1,102 @@
+import Measurement as mm
+import Feature as fe
+import Generation as g
+
 from functools import reduce
 from sklearn import svm
 
-import Measurement as mm
-import NonlinearEnergy as ny
-import SpectralPower as sr
-import Feature as fe
-import LineLength as ll
 import numpy as np
-import scipy as sp
-import scipy.signal as sp
-import Normalization
 import pickle
-import sklearn.linear_model as lm
 import argparse
 
-def directTrainingSVM(args):
+feat_key = ['tbp', 'abp', 'bbp', 'nonlin', 'line']
+
+def train(feat_array, label_downsampled, kernel, gamma = 0):
+	# This part can be modified for different machine learning architectures
+	print(gamma)
+	if (gamma == 0):
+		clf = svm.SVC(gamma = 'scale', kernel = kernel)
+		clf.fit(feat_array, label_downsampled)
+	else:
+		print("Hello")
+		clf = svm.SVC(gamma = gamma, kernel = kernel)
+		clf.fit(feat_array, label_downsampled)
+	print("Training has been completed")
+	return clf
+
+def saveSVM(clf, tempMean, tempStd, norm, kernel, gamma = 0):
+	print("Saving...")
+	if (gamma == 0):
+		filename = "trained_" + kernel + "_gamma_DEFAULT.pkg"
+	else:
+		filename = "trained_" + kernel + "_gamma_" + str(gamma).replace('.', '_') + ".pkg"
+	saveData = {'model': clf, 'mean': tempMean, 'std': tempStd, 'method': 'SVM', 'norm': norm, 'gamma': gamma}
+	pickle.dump(saveData, open(filename, 'wb'))
+
+def main():
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--Normalize', '-n', type = str, default = 'MeanStd')
+	parser.add_argument('--Kernel', '-k', type = str, default = 'rbf')
+	parser.add_argument('--Start', '-s', type = int, default = 1)
+	parser.add_argument('--End', '-e', type = int, default = 5)
+
+	# This flag determines whether or not multiple trainings will be performed for the
+	# cross validation
+	parser.add_argument('--CrossValid', '-c', type = bool, default = False)
+	parser.add_argument('--GammaMin', type = float, default = 0.0)
+	parser.add_argument('--GammaMax', type = float, default = 1.0)
+
+	args = parser.parse_args()
+
 	# Uploading data from a measurement text file
-	MeasObjCh1 = mm.Measurement("Study_005_channel1.pkg", args.Start, args.End)
-	MeasObjCh1.downsample(2)
+	meas_obj = mm.Measurement("Study_005_channel1.pkg", args.Start, args.End)
+	meas_obj.downsample(2)
 
 	# Calculating all the relevant features using information encompassing all the other
 	# features
-	FeatObj1 = fe.Feature(MeasObjCh1)
+	feat_obj = fe.Feature(meas_obj)
 
-	# Calculating the power within certain frequency bands from the data that are of
-	# importance in seizure detection
-	thetaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 4, 8)
-	alphaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 14, 32)
-	betaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 8, 12)
+	feat_label_dict = g.getFeaturesAndLabel(meas_obj, feat_obj)
+	feat_dict = dict((k, feat_label_dict[k]) for k in feat_key if k in feat_label_dict)
+	label_downsampled = feat_label_dict['label']
 
-	# Calculating the overall nonlinear energy of the data
-	nonlinearEnergyFeature1 = ny.calculateFeatureValue(FeatObj1)
-
-	# Calculating the line length of the data
-	lineLengthFeature1 = ll.calculateFeatureValue(FeatObj1, FeatObj1.stepSize.astype(int), FeatObj1.windowLength.astype(int))
-
-	# Weed out all the bad values here
-	thetaBandPowerFeature1IsNaN = np.where(np.isnan(thetaBandPowerFeature1))
-	alphaBandPowerFeature1IsNaN = np.where(np.isnan(alphaBandPowerFeature1))
-	betaBandPowerFeature1IsNaN = np.where(np.isnan(betaBandPowerFeature1))
-
-	nonlinearEnergyFeature1IsNaN = np.where(np.isnan(nonlinearEnergyFeature1))
-	lineLengthFeature1IsNaN = np.where(np.isnan(lineLengthFeature1))
-
-	indicesToRemove = reduce(np.union1d, (thetaBandPowerFeature1IsNaN[0], alphaBandPowerFeature1IsNaN[0], betaBandPowerFeature1IsNaN[0], nonlinearEnergyFeature1IsNaN[0], lineLengthFeature1IsNaN[0]))
-
-	# Removing the indices
-	for i in sorted(indicesToRemove.tolist(), reverse = True):
-		thetaBandPowerFeature1 = np.delete(thetaBandPowerFeature1, i)
-		alphaBandPowerFeature1 = np.delete(alphaBandPowerFeature1, i)
-		betaBandPowerFeature1 = np.delete(betaBandPowerFeature1, i)
-		nonlinearEnergyFeature1 = np.delete(nonlinearEnergyFeature1, i)
-		lineLengthFeature1 = np.delete(lineLengthFeature1, i)
-		FeatObj1.labelDownsampled = np.delete(FeatObj1.labelDownsampled, i)
-
-	# Storing the temporary means and standard deviations of the features
-	tempMean = [np.mean(thetaBandPowerFeature1),np.mean(alphaBandPowerFeature1),np.mean(betaBandPowerFeature1),np.mean(nonlinearEnergyFeature1),np.mean(lineLengthFeature1)]
-	tempStd = [np.std(thetaBandPowerFeature1),np.std(alphaBandPowerFeature1),np.std(betaBandPowerFeature1),np.std(nonlinearEnergyFeature1),np.std(lineLengthFeature1)]
-
-	# Do the feature normalization here
-	if args.Normalize== "MinMax":
-		print("Using MinMax")
-		thetaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(thetaBandPowerFeature1))
-		alphaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(alphaBandPowerFeature1))
-		betaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(betaBandPowerFeature1))
-		nonlinearEnergyFeature1 = Normalization.normalizeDataMinMax(np.asarray(nonlinearEnergyFeature1))
-		lineLengthFeature1 = Normalization.normalizeDataMinMax(np.asarray(lineLengthFeature1))
-	elif args.Normalize == "MeanStd":
-		print("Using MeanStd")
-		thetaBandPowerFeature1 = Normalization.normalizeDataMeanStd(thetaBandPowerFeature1, np.mean(thetaBandPowerFeature1), np.std(thetaBandPowerFeature1))
-		alphaBandPowerFeature1 = Normalization.normalizeDataMeanStd(alphaBandPowerFeature1, np.mean(alphaBandPowerFeature1), np.std(alphaBandPowerFeature1))
-		betaBandPowerFeature1 = Normalization.normalizeDataMeanStd(betaBandPowerFeature1, np.mean(betaBandPowerFeature1), np.std(betaBandPowerFeature1))
-		nonlinearEnergyFeature1 = Normalization.normalizeDataMeanStd(nonlinearEnergyFeature1, np.mean(nonlinearEnergyFeature1), np.std(nonlinearEnergyFeature1))
-		lineLengthFeature1 = Normalization.normalizeDataMeanStd(lineLengthFeature1, np.mean(lineLengthFeature1), np.std(lineLengthFeature1))
-	else:
-		print("No proper normalization tool was selected")
+	# Good practice to check that the correct keys are generated for their value
+	if (g.checkDictForFeat(feat_dict) == False):
 		assert(False)
 
-	# Reshaping the features array in order to allow classification and training to be possible
-	features = np.reshape(np.hstack((thetaBandPowerFeature1,alphaBandPowerFeature1, betaBandPowerFeature1, nonlinearEnergyFeature1,lineLengthFeature1)),(-1,5),1)
+	# Storing the temporary means and standard deviations of the features before it is normalized
+	# since a dictionary is mutable
+	'''
+	tempMean = np.asarray([])
+	tempStd = np.asarray([])
+	for i in feat_key:
+			tempMean = np.append(tempMean, np.mean(feat_dict[i]))
+			tempStd = np.append(tempStd, np.std(feat_dict[i]))
+	'''
+	tempMean = {}
+	tempStd = {}
+	for i in feat_key:
+			tempMean[i] = np.mean(feat_dict[i])
+			tempStd[i] = np.std(feat_dict[i])
 
-	# This part can be modified for different machine learning architecturesor 
-	kernels = ['rbf', 'linear']
-	# kernels = ['rbf', 'linear', 'poly']
-	print('Using SVM')
-	for i in range(len(kernels)):
-		clf = svm.SVC(gamma = 0.5, kernel = kernels[i])
-		clf.fit(features, FeatObj1.labelDownsampled)
-		print("Saving...")
-		filename ="trained_" + kernels[i] + ".pkg"
-		saveData = {'model' : clf, 'mean': tempMean, 'std': tempStd, 'Method': 'SVM', 'Norm': args.Normalize}
-		pickle.dump(saveData, open(filename, 'wb'))
+	if (args.Normalize == "MeanStd"):
+		g.normFeature(feat_dict, args.Normalize, tempMean, tempStd)
+	elif (args.Normalize == "MinMax"):
+		g.normFeature(feat_dict, args.Normalize)
+	else:
+		assert(False)
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--Normalize', '-n', type=str, default= 'MeanStd')
-parser.add_argument('--Start', '-s', type=int, default=1)
-parser.add_argument('--End', '-e', type=int, default=10) 
-parser.add_argument('--CrossValid', '-c', type=bool, default=False)
+	feat_array = g.convertDictToFeatArray(feat_dict)
+	if (args.CrossValid == True):
+		print("Conducting validation testing...")
+		for i in np.arange(args.GammaMin, args.GammaMax, 0.1):
+			print(i)
+			c = train(feat_array, label_downsampled, args.Kernel, i)
+			saveSVM(c, tempMean, tempStd, args.Normalize, args.Kernel, i)
+	else:
+		print("Using default Gamma value")
+		c = train(feat_array, label_downsampled, args.Kernel)
+		saveSVM(c, tempMean, tempStd, args.Normalize, args.Kernel)
 
-args = parser.parse_args()
-directTrainingSVM(args)
+if __name__ == "__main__":
+	main()
