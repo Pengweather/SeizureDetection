@@ -16,15 +16,26 @@ from sklearn.ensemble import RandomForestClassifier
 import argparse
 
 NUM_CONFIG = 1
+models = ['Lin_Regress','Ran_Forest']
 
+def show_accum(Accum_sens_all):
+	plt.figure()
+	plt.title('Accmulative Sensitivity')
+	plt.xlabel('Seizure index')
+	plt.ylabel('Accmulative Sensitivity [%]')
+	i = 0
+	for Accum_sens in Accum_sens_all:
+
+		plt.plot(Accum_sens, marker = "*", label = models[i])
+		i+=1
+	plt.legend(loc='upper right')
+	plt.show()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--filename', '-f', type=str, default= 'None')
-parser.add_argument('--Start', '-s', type=int, default=140)
+parser.add_argument('--Start', '-s', type=int, default=101)
 parser.add_argument('--End', '-e', type=int, default=151)
 args = parser.parse_args()
-if args.filename == 'None':
-	assert(False)
 file = 'trained_' + args.filename
 
 # Uploading the testing data
@@ -59,10 +70,10 @@ for i in sorted(indicesToRemove.tolist(), reverse = True):
 	data = np.delete(data, i)
 Accu = []
 FP = []
-
+Accum_sens =[]
 # Upload the results from training
-for i in range(NUM_CONFIG):
-	filename = file + "_" + str(i) + ".pkg"
+for file in models:
+	filename ='trained_' + file + ".pkg"
 	loadData = pickle.load(open(filename, 'rb'))
 	clf = loadData['model']
 	Method = loadData['Method']
@@ -93,27 +104,31 @@ for i in range(NUM_CONFIG):
 
 	result = clf.predict(features)
 	if  not Method == "Lin_Regress":
-		_,Accu_temp, FP_temp = FeatObj1.analyze(result)
+		Accum_sens_temp,Accu_temp, FP_temp = FeatObj1.analyze(result)
 		Accu.append(Accu_temp)
 		FP.append(FP_temp)
+		print("Sensitivity = " + str(Accu_temp) + ' FP = ' +str(FP_temp) + ' for ' + Method)
 	else:
 		threshold = loadData['Threshold']
 		result[result >= threshold] = 1
 		result[result < threshold] = 0
-		_,Accu_temp, FP_temp = FeatObj1.analyze(result)
+		Accum_sens_temp,Accu_temp, FP_temp = FeatObj1.analyze(result)
 		Accu.append(Accu_temp)
 		FP.append(FP_temp)
+		print("Sensitivity = " + str(Accu_temp) + ' FP = ' +str(FP_temp) + ' for ' + Method)
+	Accum_sens.append(Accum_sens_temp)
 # Testing different Threshold for linear regression
-print("Sensitivity = " + str(Accu_temp*100) + "%")
-print("FP = " + str(FP_temp*100) + "%")
-print(len(data))
-print(len(result))
-plt.figure()
-plt.xlabel('Index')
-plt.ylabel('Label')
-plt.title('Actual Label vs Prediction' + "(" + Method + ')')
-plt.plot(data)
-plt.plot(np.multiply(data,result),color = 'r',label = 'Predicted')
-plt.plot(FeatObj1.labelDownsampled *max(data),color = 'g',label = 'Actual')
-plt.legend(loc='upper left')
-plt.show()
+# print("Sensitivity = " + str(Accu_temp*100) + "%")
+# print("FP = " + str(FP_temp*100) + "%")
+# print(len(data))
+# print(len(result))
+# plt.figure()
+# plt.xlabel('Index')
+# plt.ylabel('Label')
+# plt.title('Actual Label vs Prediction' + "(" + Method + ')')
+# plt.plot(data)
+# plt.plot(np.multiply(data,result),color = 'r',label = 'Predicted')
+# plt.plot(FeatObj1.labelDownsampled *max(data),color = 'g',label = 'Actual')
+# plt.legend(loc='upper left')
+# plt.show()
+show_accum(Accum_sens)

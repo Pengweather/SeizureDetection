@@ -112,7 +112,7 @@ def score(sens,FP):
 
 def show_accum(Accum_sens):
 	plt.figure()
-	plt.title('Accmulative Sensiticity')
+	plt.title('Accmulative Sensitivity')
 	plt.xlabel('Seizure index')
 	plt.ylabel('Accmulative Sensitivity [%]')
 	plt.plot(Accum_sens, marker = "*")
@@ -123,7 +123,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--Methods', '-m', type=str, default= 'Lin_Regress')
 parser.add_argument('--Normalize', '-n', type=str, default= 'None')
 parser.add_argument('--Start', '-s', type=int, default=1)
-parser.add_argument('--End', '-e', type=int, default=25)
+parser.add_argument('--End', '-e', type=int, default=100)
 args = parser.parse_args()
 Method = args.Methods
 Norm = args.Normalize
@@ -183,9 +183,9 @@ elif Method == "Ran_Forest":
 			score_curr = score(Sens_temp,FP_temp)
 			if score_curr < lowest_score:
 				lowest_score = score_curr
-				Best_Threshold = threshold
+				#Best_Threshold = threshold
 				lowest_FP = FP_temp
-				j=i
+				#j=i
 				Best_sens = Sens_temp
 				Accum_sens = Accum_sens_temp
 				clf = clf_temp
@@ -195,9 +195,9 @@ elif Method == "Ran_Forest":
 				print("=========================================")
 			elif score_curr == lowest_score and FP_temp < lowest_FP:
 				lowest_score = score_curr
-				Best_Threshold = threshold
+				#Best_Threshold = threshold
 				lowest_FP = FP_temp
-				j=i
+				#j=i
 				Best_sens = Sens_temp
 				Accum_sens = Accum_sens_temp
 				clf = clf_temp
@@ -206,10 +206,11 @@ elif Method == "Ran_Forest":
 				print("Best maximum depth: "+str(md))
 				print("=========================================")
 print("Saving...")
-filename ="trained_"+ Method + "_0.pkg"
+filename ="trained_"+ Method + ".pkg"
 saveData = {'model' : clf, 'mean': tempMean, 'std': tempStd, 'Method': Method, 'Norm': Norm, 'Threshold': Best_Threshold}
 pickle.dump(saveData, open(filename, 'wb'))
 print("Lowest score is: " + str(lowest_score) + ", with Threshold = " + str(Best_Threshold))
 print("Best sensitivity is " + str(Best_sens)+" Best FP is " + str(lowest_FP)+ " at iteration " + str(j))
+print(Accum_sens)
 show_ROC(FP, Sens)
 show_accum(Accum_sens)
