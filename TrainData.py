@@ -5,11 +5,14 @@ import Generation as g
 from functools import reduce
 from sklearn import svm
 
+import argparse
 import numpy as np
 import pickle
-import argparse
+import time
 
+# An array of keys that will identify each feature
 feat_key = ['tbp', 'abp', 'bbp', 'nonlin', 'line']
+
 
 def train(feat_array, label_downsampled, kernel, gamma = 0):
 	# This part can be modified for different machine learning architectures
@@ -25,9 +28,9 @@ def train(feat_array, label_downsampled, kernel, gamma = 0):
 def saveSVM(clf, tempMean, tempStd, norm, kernel, gamma = 0):
 	print("Saving...")
 	if (gamma == 0):
-		filename = "trained_" + kernel + "_gamma_DEFAULT.pkg"
+		filename = "trained_SVM" + kernel + "_gamma_DEFAULT.pkg"
 	else:
-		filename = "trained_" + kernel + "_gamma_" + str(gamma).replace('.', '_') + ".pkg"
+		filename = "trained_SVM_" + kernel + "_gamma_" + str(gamma).replace('.', '_') + ".pkg"
 	saveData = {'model': clf, 'mean': tempMean, 'std': tempStd, 'method': 'SVM', 'norm': norm, 'gamma': gamma}
 	pickle.dump(saveData, open(filename, 'wb'))
 
@@ -78,18 +81,16 @@ def main():
 			tempMean[i] = np.mean(feat_dict[i])
 			tempStd[i] = np.std(feat_dict[i])
 
-	if (args.Normalize == "MeanStd"):
-		g.normFeature(feat_dict, args.Normalize, tempMean, tempStd)
-	elif (args.Normalize == "MinMax"):
-		g.normFeature(feat_dict, args.Normalize)
-	else:
-		assert(False)
-
+	g.normFeature(feat_dict, args.Normalize, tempMean, tempStd)
 	feat_array = g.convertDictToFeatArray(feat_dict)
+
 	if (args.CrossValid == True):
 		for i in np.arange(args.GammaMin, args.GammaMax, args.Increment):
-			print("Training test set using " + str(i) + " for gamma")
+			print("Training set for gamma = " + str(i))
+			start = time.time()
 			c = train(feat_array, label_downsampled, args.Kernel, i)
+			end = time.time()
+			print(str(end - start) + " seconds")
 			saveSVM(c, tempMean, tempStd, args.Normalize, args.Kernel, i)
 	else:
 		print("Using default Gamma value")

@@ -8,9 +8,11 @@ import Normalization as norm
 
 import numpy as np
 
+# An array of keys that will identify each feature
 feat_key = ['tbp', 'abp', 'bbp', 'nonlin', 'line']
 
 def getFeaturesAndLabel(meas_obj, feat_obj):
+    # For the spectral power and the nonlinear energy calculations, the step size is contained within feat_obj
     # Calculating the power within certain frequency bands from the data that are of
     # importance in seizure detection
     tbp_feat = sr.calcValue(feat_obj, 4, 8)
@@ -44,7 +46,7 @@ def getFeaturesAndLabel(meas_obj, feat_obj):
 
     return {'tbp': tbp_feat, 'abp': abp_feat, 'bbp': bbp_feat, 'nonlin': nonlin_feat, 'line': line_feat, 'label': feat_obj.labelDownsampled, 'data': data_downsampled}
 
-def normFeature(feat_dict, normalize, mean = None, std = None):
+def normFeature(feat_dict, normalize, mean, std):
 	# Do the feature normalization here
 	if normalize == "MinMax":
 		print("Using MinMax")

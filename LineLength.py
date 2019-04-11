@@ -16,7 +16,7 @@ import sys
 #note:
 #   The results of |x[i] - x[i-1]| is zero padded in the front with window - 1 zeros
 ####################################################################################
-def calculateFeatureValue(Feature, stepSize = 0.2, window = 1):
+def calcValue(Feature, stepSize = 0.2, window = 1):
 	data = Feature.measurement.seizureData
 	assert(len(data) > window)
 	diff = np.zeros(window-1)

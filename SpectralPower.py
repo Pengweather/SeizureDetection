@@ -2,7 +2,7 @@ import GenFilt as gf
 import pandas as pd
 import numpy as np
 
-def calculateFeatureValue(feature, cutoffFreqStart, cutoffFreqEnd):
+def calcValue(feature, cutoffFreqStart, cutoffFreqEnd):
 	x = gf.filt_data(feature.measurement.seizureData, cutoffFreqStart, cutoffFreqEnd, feature.measurement.Fs, 10)
 	s = pd.Series(x**2)
 	energy = s.rolling(feature.windowLength.astype(int) - 1).mean()

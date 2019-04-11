@@ -30,11 +30,11 @@ MeasObjCh1.downsample(2)
 
 # Calculating all the relevant features
 FeatObj1 = fe.Feature(MeasObjCh1)
-thetaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 4, 8)
-alphaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 14, 32)
-betaBandPowerFeature1 = sr.calculateFeatureValue(FeatObj1, 8, 12)
-nonlinearEnergyFeature1 = ny.calculateFeatureValue(FeatObj1)
-lineLengthFeature1 = ll.calculateFeatureValue(FeatObj1, FeatObj1.stepSize.astype(int), FeatObj1.windowLength.astype(int))
+thetaBandPowerFeature1 = sr.calcValue(FeatObj1, 4, 8)
+alphaBandPowerFeature1 = sr.calcValue(FeatObj1, 14, 32)
+betaBandPowerFeature1 = sr.calcValue(FeatObj1, 8, 12)
+nonlinearEnergyFeature1 = ny.calcValue(FeatObj1)
+lineLengthFeature1 = ll.calcValue(FeatObj1, FeatObj1.stepSize.astype(int), FeatObj1.windowLength.astype(int))
 
 # Weed out all the bad values here
 thetaBandPowerFeature1IsNaN = np.where(np.isnan(thetaBandPowerFeature1))
@@ -57,33 +57,33 @@ for i in sorted(indicesToRemove.tolist(), reverse = True):
 	data = np.delete(data, i)
 
 # Upload the results from training
-kernels = ['rbf', 'linear']
+kernels = ['rbf']
 for i in range(NUM_CONFIG):
 	if not i == 0:
 		plt.show(block=False)
-	filename = file + "_" + kernels[i] + ".pkg"
+	filename = file + "_" + kernels[i] + "_gamma_DEFAULT" + ".pkg"
 	loadData = pickle.load(open(filename, 'rb'))
 	clf = loadData['model']
-	Method = loadData['Method']
-	Norm = loadData['Norm']
+	Method = loadData['method']
+	Norm = loadData['norm']
 	if Norm == "MeanStd":
 		print("Using MeanStd")
-		temp_thetaBandPowerFeature1 = Normalization.normalizeDataMeanStd(np.asarray(thetaBandPowerFeature1),loadData['mean'][0],loadData['std'][0])
-		temp_alphaBandPowerFeature1 = Normalization.normalizeDataMeanStd(np.asarray(alphaBandPowerFeature1),loadData['mean'][1],loadData['std'][1])
-		temp_betaBandPowerFeature1 = Normalization.normalizeDataMeanStd(np.asarray(betaBandPowerFeature1),loadData['mean'][2],loadData['std'][2])
-		temp_nonlinearEnergyFeature1 = Normalization.normalizeDataMeanStd(np.asarray(nonlinearEnergyFeature1),loadData['mean'][3],loadData['std'][3])
-		temp_lineLengthFeature1 = Normalization.normalizeDataMeanStd(np.asarray(lineLengthFeature1),loadData['mean'][4],loadData['std'][4])
+		temp_thetaBandPowerFeature1 = Normalization.normMeanStd(np.asarray(thetaBandPowerFeature1),loadData['mean']['tbp'],loadData['std']['tbp'])
+		temp_alphaBandPowerFeature1 = Normalization.normMeanStd(np.asarray(alphaBandPowerFeature1),loadData['mean']['abp'],loadData['std']['abp'])
+		temp_betaBandPowerFeature1 = Normalization.normMeanStd(np.asarray(betaBandPowerFeature1),loadData['mean']['bbp'],loadData['std']['bbp'])
+		temp_nonlinearEnergyFeature1 = Normalization.normMeanStd(np.asarray(nonlinearEnergyFeature1),loadData['mean']['nonlin'],loadData['std']['nonlin'])
+		temp_lineLengthFeature1 = Normalization.normMeanStd(np.asarray(lineLengthFeature1),loadData['mean']['line'],loadData['std']['line'])
 	elif Norm == "MinMax":
 		print("Using MinMax")
-		temp_thetaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(thetaBandPowerFeature1))
-		temp_alphaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(alphaBandPowerFeature1))
-		temp_betaBandPowerFeature1 = Normalization.normalizeDataMinMax(np.asarray(betaBandPowerFeature1))
-		temp_nonlinearEnergyFeature1 = Normalization.normalizeDataMinMax(np.asarray(nonlinearEnergyFeature1))
-		temp_lineLengthFeature1 = Normalization.normalizeDataMinMax(np.asarray(lineLengthFeature1))
+		temp_thetaBandPowerFeature1 = Normalization.normMinMax(np.asarray(thetaBandPowerFeature1))
+		temp_alphaBandPowerFeature1 = Normalization.normMinMax(np.asarray(alphaBandPowerFeature1))
+		temp_betaBandPowerFeature1 = Normalization.normMinMax(np.asarray(betaBandPowerFeature1))
+		temp_nonlinearEnergyFeature1 = Normalization.normMinMax(np.asarray(nonlinearEnergyFeature1))
+		temp_lineLengthFeature1 = Normalization.normMinMax(np.asarray(lineLengthFeature1))
 
 	features = np.reshape(np.hstack((temp_thetaBandPowerFeature1, temp_alphaBandPowerFeature1, temp_betaBandPowerFeature1, temp_nonlinearEnergyFeature1, temp_lineLengthFeature1)),(-1,5),1)
 	result = clf.predict(features)
-	print(np.count_nonzero(result))	
+	print(np.count_nonzero(result))
 	plt.figure()
 	plt.xlabel('Index')
 	plt.ylabel('Label')

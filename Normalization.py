@@ -1,8 +1,8 @@
 import numpy as np
 
-def normalizeDataMinMax(data):
+def normMinMax(data):
 	return (data - min(data))/(max(data) - min(data))
 
 
-def normalizeDataMeanStd(data, mean, std):
+def normMeanStd(data, mean, std):
 	return (data - mean) / std

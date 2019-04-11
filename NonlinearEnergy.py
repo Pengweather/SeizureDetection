@@ -4,13 +4,13 @@ import numpy as np
 import scipy as sp
 import math
 
-def calculateFeatureValue(feature):
+def calcValue(feature):
 	data = feature.measurement.seizureData
 	val = np.square(data) - (np.roll(data, 1) * np.roll(data, -1))
 	val[0] = 0
 	val[-1] = 0
 	# For now, use this method from Pandas
-	s = pd.Series(val) 
+	s = pd.Series(val)
 	movAverage = s.rolling(feature.windowLength.astype(int) - 1).mean()
 	movAverage = movAverage[::feature.stepSize]
 	# This results in a memory error

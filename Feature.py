@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import scipy as sp
 import math
+# import pdb; pdb.set_trace()
 
 DEFAULT_STEPSIZE_SECONDS = 0.2
 DEFAULT_WINDOWLENGTH_SECONDS = 1
@@ -49,12 +50,30 @@ class Feature:
 	def analyze(self, prediction):
 		# Prediction edges
 		total = np.count_nonzero(prediction)
-		total_label = np.count_nonzero(self.labelDownsampled)
 		TP = np.logical_and(self.labelDownsampled, prediction)
-		FP = total - np.count_nonzero(TP)
-		FP_rate = FP / float(total)
-		sensitivity = np.count_nonzero(TP)/ float(total_label)
 
-		#print(FP/total)
-		#print(accuracy)
-		return sensitivity, FP_rate
+		negatives = np.count_nonzero(self.labelDownsampled == 0)
+		FP = total - np.count_nonzero(TP)
+		FP_rate = FP / float(negatives)
+
+		first = np.append(self.labelDownsampled, 0)
+		second = np.append(0, self.labelDownsampled)
+
+		edge = first - second
+		redge = np.where(edge == 1)[0]
+		fedge = np.where(edge == -1)[0]
+
+		assert(len(redge) == len(fedge))
+		detected = 0
+		accum = []
+		for i in range(len(redge)):
+			if np.count_nonzero(prediction[redge[i]:fedge[i]])/float(fedge[i]-redge[i]) >= 0.1:
+				detected += 1
+			accum.append(detected/float(i + 1))
+		sensitivity = detected/float(len(redge))
+		#np.count_nonzero(TP)/ float(total_label)
+		# print("########################################")
+		# print(np.count_nonzero(TP))
+		# print(negatives)
+		# print(total)
+		return accum, sensitivity, FP_rate
