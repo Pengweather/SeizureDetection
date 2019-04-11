@@ -3,6 +3,7 @@ import Feature as fe
 import Generation as g
 
 from functools import reduce
+from joblib import Parallel, delayed
 from sklearn import svm
 
 import argparse
@@ -14,7 +15,7 @@ import time
 feat_key = ['tbp', 'abp', 'bbp', 'nonlin', 'line']
 
 
-def train(feat_array, label_downsampled, kernel, gamma = 0):
+def train_SVM(feat_array, label_downsampled, kernel, norm, gamma = 0):
 	# This part can be modified for different machine learning architectures
 	if (gamma == 0):
 		clf = svm.SVC(gamma = 'scale', kernel = kernel)
@@ -22,8 +23,7 @@ def train(feat_array, label_downsampled, kernel, gamma = 0):
 	else:
 		clf = svm.SVC(gamma = gamma, kernel = kernel)
 		clf.fit(feat_array, label_downsampled)
-	print("Training has been completed")
-	return clf
+	saveSVM(clf, tempMean, tempStd, norm, kernel, gamma = 0)
 
 def saveSVM(clf, tempMean, tempStd, norm, kernel, gamma = 0):
 	print("Saving...")
@@ -85,13 +85,13 @@ def main():
 	feat_array = g.convertDictToFeatArray(feat_dict)
 
 	if (args.CrossValid == True):
-		for i in np.arange(args.GammaMin, args.GammaMax, args.Increment):
-			print("Training set for gamma = " + str(i))
-			start = time.time()
-			c = train(feat_array, label_downsampled, args.Kernel, i)
-			end = time.time()
-			print(str(end - start) + " seconds")
-			saveSVM(c, tempMean, tempStd, args.Normalize, args.Kernel, i)
+		start = time.time()
+		#print("Training set for gamma = " + str(i))
+		Parallel(n_jobs = 4)(
+			delayed(train_SVM)(feat_array, label_downsampled, args.Kernel, args.Normalize, i)
+			for i in np.arange(args.GammaMin, args.GammaMax, args.Increment))
+		end = time.time()
+		print(str(end - start) + " seconds")
 	else:
 		print("Using default Gamma value")
 		c = train(feat_array, label_downsampled, args.Kernel)
