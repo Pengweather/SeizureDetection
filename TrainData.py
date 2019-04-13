@@ -17,21 +17,22 @@ feat_key = ['tbp', 'abp', 'bbp', 'nonlin', 'line']
 
 def train_SVM(feat_array, label_downsampled, kernel, norm, gamma = 0):
 	# This part can be modified for different machine learning architectures
+	print("Training set for gamma = " + str(gamma))
 	if (gamma == 0):
 		clf = svm.SVC(gamma = 'scale', kernel = kernel)
 		clf.fit(feat_array, label_downsampled)
 	else:
 		clf = svm.SVC(gamma = gamma, kernel = kernel)
 		clf.fit(feat_array, label_downsampled)
-	saveSVM(clf, tempMean, tempStd, norm, kernel, gamma = 0)
+	return clf
 
-def saveSVM(clf, tempMean, tempStd, norm, kernel, gamma = 0):
+def saveSVM(clf, mean, std, norm, kernel, gamma = 0):
 	print("Saving...")
 	if (gamma == 0):
 		filename = "trained_SVM" + kernel + "_gamma_DEFAULT.pkg"
 	else:
 		filename = "trained_SVM_" + kernel + "_gamma_" + str(gamma).replace('.', '_') + ".pkg"
-	saveData = {'model': clf, 'mean': tempMean, 'std': tempStd, 'method': 'SVM', 'norm': norm, 'gamma': gamma}
+	saveData = {'model': clf, 'mean': mean, 'std': std, 'method': 'SVM', 'norm': norm, 'gamma': gamma}
 	pickle.dump(saveData, open(filename, 'wb'))
 
 def main():
@@ -70,32 +71,41 @@ def main():
 	# since a dictionary is mutable
 	'''
 	tempMean = np.asarray([])
-	tempStd = np.asarray([])
+	tempStd = np.asarray([])print("Completed")
 	for i in feat_key:
 			tempMean = np.append(tempMean, np.mean(feat_dict[i]))
 			tempStd = np.append(tempStd, np.std(feat_dict[i]))
 	'''
-	tempMean = {}
-	tempStd = {}
+	temp_mean = {}
+	temp_std = {}
 	for i in feat_key:
-			tempMean[i] = np.mean(feat_dict[i])
-			tempStd[i] = np.std(feat_dict[i])
+			temp_mean[i] = np.mean(feat_dict[i])
+			temp_std[i] = np.std(feat_dict[i])
 
-	g.normFeature(feat_dict, args.Normalize, tempMean, tempStd)
+	g.normFeature(feat_dict, args.Normalize, temp_mean, temp_std)
 	feat_array = g.convertDictToFeatArray(feat_dict)
+
+	gamma_ranges = np.arange(args.GammaMin, args.GammaMax, args.Increment)
 
 	if (args.CrossValid == True):
 		start = time.time()
-		#print("Training set for gamma = " + str(i))
-		Parallel(n_jobs = 4)(
+		results = Parallel(n_jobs = 4)(
 			delayed(train_SVM)(feat_array, label_downsampled, args.Kernel, args.Normalize, i)
 			for i in np.arange(args.GammaMin, args.GammaMax, args.Increment))
 		end = time.time()
 		print(str(end - start) + " seconds")
+		# Ensure that the shape of joblib is the same as the number of gamma values being tested
+		print(len(results))
+		print(gamma_ranges.shape[0])
+		assert(len(results) == gamma_ranges.shape[0])
+		for i in range(len(results)):
+			saveSVM(results[i], temp_mean, temp_std, args.Normalize, args.Kernel, gamma_ranges[i])
+		print("Completed")
 	else:
 		print("Using default Gamma value")
 		c = train(feat_array, label_downsampled, args.Kernel)
-		saveSVM(c, tempMean, tempStd, args.Normalize, args.Kernel)
+		saveSVM(c, temp_mean, temp_std, args.Normalize, args.Kernel)
+		print("Completed")
 
 if __name__ == "__main__":
 	main()
