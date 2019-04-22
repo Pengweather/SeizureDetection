@@ -33,7 +33,7 @@ def validate(load_data, feat_dict):
     feat_array = g.convertDictToFeatArray(feat_dict)
     return clf.predict(feat_array)
 
-def plot(data_downsampled, result, label_downsampled, gamma, method):
+def plotResults(data_downsampled, result, label_downsampled, gamma, method):
     plt.figure()
     plt.xlabel('Index')
     plt.ylabel('Label')
@@ -44,10 +44,7 @@ def plot(data_downsampled, result, label_downsampled, gamma, method):
     plt.legend(loc = 'upper left')
     plt.show()
 
-def accessPerformance(data_downsampled, result):
-    return None
-
-def loadSVM(filename):
+def loadFile(filename):
     load_data = pickle.load(open(filename, 'rb'))
     return load_data
 
@@ -65,6 +62,9 @@ def main():
     parser.add_argument('--End', '-e', type = int, default = 15)
     parser.add_argument('--Plot', '-p', type = str, default = "False")
 
+    # Append additional data to results.pkg
+    parser.add_argument('--Append', '-a', type = str, default = "True")
+
     args = parser.parse_args()
 
     meas_obj = mm.Measurement("Study_005_channel1.pkg", args.Start, args.End)
@@ -81,48 +81,57 @@ def main():
     if (g.checkDictForFeat(feat_dict) == False):
         assert(False)
 
-    # Getting all the trained files from within the directory
-    list_of_files = os.listdir('.')
-    pattern = "trained_SVM_rbf_gamma_*"
-    trained_files = np.asarray([])
-    for entry in list_of_files:
-        if fnmatch.fnmatch(entry, pattern):
-            trained_files = np.append(trained_files, entry)
+    trained_files = []
+    if (str2bool(args.Append) == True):
+        start_gamma = input("Enter the first gamma: ")
+        end_gamma = input("Enter the last gamma: ")
+        list_of_files = os.listdir('.')
+        inc = 1
+        for i in np.arange(start_gamma, end_gamma + inc, inc):
+            pattern = "trained_SVM_rbf_gamma_" + str(i) + "_*"
+            for entry in list_of_files:
+                if fnmatch.fnmatch(entry, pattern):
+                    trained_files.append(entry)
+                    break
+        load_results = loadFile("results.pkg")
+        results = load_results['results']
+        gamma_data = load_results['gamma_data']
+        for i in trained_files:
+            load_svm = loadFile(i)
+            if (load_svm['gamma'] not in gamma_data):
+                temp_feat_dict = copy.deepcopy(feat_dict)
+                result = validate(load_svm, temp_feat_dict)
+                results.append(result)
+                gamma_data.append(load_svm['gamma'])
+            else:
+                print("Skipping")
+    else:
+        list_of_files = os.listdir('.')
+        pattern = "trained_SVM_rbf_gamma_*"
+        for entry in list_of_files:
+            if fnmatch.fnmatch(entry, pattern):
+                trained_files.append(entry)
+        # Going through all the trained files and analyzing its performance
+        results = []
+        gamma_data = []
+        for i in trained_files:
+            load_svm = loadFile(i)
+            temp_feat_dict = copy.deepcopy(feat_dict)
+            result = validate(load_svm, temp_feat_dict)
+            results.append(result)
+            gamma_data.append(load_svm['gamma'])
+            #if (str2bool(args.Plot) == True):
+            #    plotResults(data_downsampled, result, label_downsampled, load_data['gamma'], load_data['method'])
+            assert(len(results) == len(gamma_data))
 
-    # Going through all the trained files and analyzing its performance
-    sensitivity_data = np.asarray([])
-    FP_data = np.asarray([])
-    gamma_data = np.asarray([])
-    results = []
-    for i in trained_files:
-        load_data = loadSVM(i)
-        temp_feat_dict = copy.deepcopy(feat_dict)
-        result = validate(load_data, temp_feat_dict)
-        results.append(result)
+    save_data = {'feat_obj': feat_obj, 'results': results, 'gamma_data': gamma_data}
+    pickle.dump(save_data, open("results.pkg", 'wb'))
 
-        accum, sensitivity, FP_rate = feat_obj.analyze(result)
-        sensitivity_data = np.append(sensitivity_data, sensitivity)
-        FP_data = np.append(FP_data, FP_rate)
-        gamma_data = np.append(gamma_data, load_data['gamma'])
-
-        print(accum)
-        print(sensitivity)
-        print(FP_rate)
-        if (str2bool(args.Plot) == True):
-            plot(data_downsampled, result, label_downsampled, load_data['gamma'], load_data['method'])
-
-    plt.figure()
-    plt.xlabel('Gamma')
-    plt.ylabel('Sensitivity')
-    plt.title('Gamma vs Sensitivity')
-    plt.scatter(gamma_data, sensitivity_data)
-    plt.legend(loc = 'upper left')
-    plt.show()
-    plt.figure()
-    for i in range(len(results)):
-        if gamma_data[i] > 6:
-            plt.plot(results[i])
-    plt.show()
+    #plt.figure()
+    #for i in range(len(results)):
+    #    if gamma_data[i] > 6:
+    #        plt.plot(results[i])
+    #plt.show()
 
 if __name__ == "__main__":
     main()

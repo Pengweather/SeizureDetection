@@ -15,25 +15,27 @@ import time
 feat_key = ['tbp', 'abp', 'bbp', 'nonlin', 'line']
 
 
-def train_SVM(feat_array, label_downsampled, kernel, norm, gamma = 0):
+def train_SVM(feat_array, label_downsampled, kernel, norm, gamma = 0, C = 1):
 	# This part can be modified for different machine learning architectures
-	print("Training set for gamma = " + str(gamma))
+	print("Training set for gamma = " + str(gamma) + " and c = " + str(C))
 	if (gamma == 0):
-		clf = svm.SVC(gamma = 'scale', kernel = kernel)
+		clf = svm.SVC(gamma = 'scale', kernel = kernel, C = C)
 		clf.fit(feat_array, label_downsampled)
 	else:
-		clf = svm.SVC(gamma = gamma, kernel = kernel)
+		clf = svm.SVC(gamma = gamma, kernel = kernel, C = C)
 		clf.fit(feat_array, label_downsampled)
 	return clf
 
-def saveSVM(clf, mean, std, norm, kernel, gamma = 0):
-	print("Saving...")
+def saveSVM(clf, mean, std, norm, kernel, flag, gamma = 0, C = 1):
+	print("Saving..." + " Gamma = " + str(gamma) + " C = " + str(C))
 	if (gamma == 0):
 		filename = "trained_SVM" + kernel + "_gamma_DEFAULT.pkg"
+	elif (flag == True):
+		filename = "trained_SVM_" + kernel + "_gamma_" + str(gamma).replace('.', '_') + "_C_" + str(C).replace('.', '_') + ".pkg"
 	else:
 		filename = "trained_SVM_" + kernel + "_gamma_" + str(gamma).replace('.', '_') + ".pkg"
-	saveData = {'model': clf, 'mean': mean, 'std': std, 'method': 'SVM', 'norm': norm, 'gamma': gamma}
-	pickle.dump(saveData, open(filename, 'wb'))
+	save_data = {'model': clf, 'mean': mean, 'std': std, 'method': 'SVM', 'norm': norm, 'gamma': gamma, 'C': C}
+	pickle.dump(save_data, open(filename, 'wb'))
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -42,13 +44,21 @@ def main():
 	parser.add_argument('--Start', '-s', type = int, default = 1)
 	parser.add_argument('--End', '-e', type = int, default = 5)
 
-	# This flag determines whether or not multiple trainings will be performed for the
-	# cross validation
-	parser.add_argument('--CrossValid', '-c', type = bool, default = False)
+	# This flag determines whether or not we would like to perform trainings by modifying
+	# gamma
+	parser.add_argument('--Gamma', '-g', type = bool, default = False)
 	parser.add_argument('--GammaMin', type = float, default = 0.0)
-	parser.add_argument('--GammaMax', type = float, default = 10)
-	parser.add_argument('--Increment', type = float, default = 1.0)
+	parser.add_argument('--GammaMax', type = float, default = 10.0)
+	parser.add_argument('--GammaIncrement', type = float, default = 1.0)
 
+	# This flag determines whether or not we would like to perform trainings by modifying
+	# c as well
+	parser.add_argument('--C', '-c', type = bool, default = False)
+	parser.add_argument('--CMin', type = float, default = 0.0)
+	parser.add_argument('--CMax', type = float, default = 10.0)
+	parser.add_argument('--CIncrement', type = float, default = 1.0)
+
+	# Parse through all the arguments
 	args = parser.parse_args()
 
 	# Uploading data from a measurement text file
@@ -85,26 +95,35 @@ def main():
 	g.normFeature(feat_dict, args.Normalize, temp_mean, temp_std)
 	feat_array = g.convertDictToFeatArray(feat_dict)
 
-	gamma_ranges = np.arange(args.GammaMin, args.GammaMax, args.Increment)
+	gamma_ranges = np.arange(args.GammaMin, args.GammaMax + args.GammaIncrement, args.GammaIncrement)
+	c_ranges = np.arange(args.CMin, args.CMax + args.CIncrement, args.CIncrement)
 
-	if (args.CrossValid == True):
+	if (args.Gamma == True):
 		start = time.time()
-		results = Parallel(n_jobs = 4)(
-			delayed(train_SVM)(feat_array, label_downsampled, args.Kernel, args.Normalize, i)
-			for i in np.arange(args.GammaMin, args.GammaMax, args.Increment))
+		if (args.C == True):
+			results = Parallel(n_jobs = 4)(
+				delayed(train_SVM)(feat_array, label_downsampled, args.Kernel, args.Normalize, i, j)
+				for j in c_ranges for i in gamma_ranges)
+			results_count = 0
+			for i in range(len(c_ranges)):
+				for j in range(len(gamma_ranges)):
+					saveSVM(results[results_count], temp_mean, temp_std, args.Normalize, args.Kernel, True, gamma_ranges[j], c_ranges[i])
+					results_count = results_count + 1
+			print(len(results) == gamma_ranges.shape[0] * c_ranges.shape[0])
+		else:
+			results = Parallel(n_jobs = 4)(
+				delayed(train_SVM)(feat_array, label_downsampled, args.Kernel, args.Normalize, i)
+				for i in gamma_ranges)
+			# Ensure that the shape of joblib is the same as the number of gamma values being tested
+			assert(len(results) == gamma_ranges.shape[0])
+			for i in range(len(results)):
+				saveSVM(results[i], temp_mean, temp_std, args.Normalize, args.Kernel, False, gamma_ranges[i])
 		end = time.time()
-		print(str(end - start) + " seconds")
-		# Ensure that the shape of joblib is the same as the number of gamma values being tested
-		print(len(results))
-		print(gamma_ranges.shape[0])
-		assert(len(results) == gamma_ranges.shape[0])
-		for i in range(len(results)):
-			saveSVM(results[i], temp_mean, temp_std, args.Normalize, args.Kernel, gamma_ranges[i])
-		print("Completed")
+		print(str(end - start) + " seconds\nCompleted")
 	else:
 		print("Using default Gamma value")
 		c = train(feat_array, label_downsampled, args.Kernel)
-		saveSVM(c, temp_mean, temp_std, args.Normalize, args.Kernel)
+		saveSVM(c, temp_mean, temp_std, args.Normalize, args.Kernel, False)
 		print("Completed")
 
 if __name__ == "__main__":
