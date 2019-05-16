@@ -14,15 +14,15 @@ import matplotlib.pyplot as plt
 import sklearn.linear_model as lm
 from sklearn.ensemble import RandomForestClassifier
 import argparse
-
+plt.rcParams.update({'font.size': 22})
 NUM_CONFIG = 1
-models = ['Lin_Regress','Ran_Forest']
+models = ['Lin_Regress','Ran_Forest','SVM']
 
 def show_accum(Accum_sens_all):
 	plt.figure()
-	plt.title('Accmulative Sensitivity')
+	plt.title('Accumulative Sensitivity')
 	plt.xlabel('Seizure index')
-	plt.ylabel('Accmulative Sensitivity [%]')
+	plt.ylabel('Accumulative Sensitivity [%]')
 	i = 0
 	for Accum_sens in Accum_sens_all:
 
